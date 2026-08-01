@@ -7,6 +7,7 @@ FZC LLC.
 | Module | Purpose |
 | --- | --- |
 | `aabaan_visit_schedule` | Visit Schedule Generator: creates and safely regenerates AMC maintenance visits (Field Service tasks) from confirmed contracts, incl. Dubai LO 11 F&B cadence and unbilled follow-up/complaint visits. |
+| `aabaan_quotation_report` | Branded quotation/contract PDF in the Aaban Services letterhead style (angular header, orange line-items table, articles, signatures, offices footer), replacing the default sale report. |
 
 Secrets policy: API keys are supplied via environment variables (e.g.
 `ODOO_API_KEY`) and are never committed to this repository.
