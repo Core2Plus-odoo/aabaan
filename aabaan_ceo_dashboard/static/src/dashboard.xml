@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+<t t-name="aabaan_ceo_dashboard.Dashboard">
+    <div class="o_aabaan_dash">
+        <div class="o_aabaan_dash_mast">
+            <div class="o_aabaan_dash_slash"/>
+            <div class="o_aabaan_dash_mast_in">
+                <div>
+                    <div class="brand">Aab<span class="a">a</span>n <span class="light">Services</span></div>
+                    <div class="tag">One stop for every service need</div>
+                </div>
+                <div class="right">
+                    <div class="ttl">CEO Dashboard</div>
+                    <div class="asof" t-if="state.data">Live from database · <t t-out="state.data.as_of"/></div>
+                </div>
+            </div>
+        </div>
+
+        <div t-if="state.error" class="o_aabaan_dash_state error">
+            Could not load the dashboard: <t t-out="state.error"/>
+        </div>
+        <div t-elif="!state.data" class="o_aabaan_dash_state">Loading…</div>
+
+        <div t-else="" class="o_aabaan_dash_body">
+            <!-- KPI tiles -->
+            <div class="o_aabaan_dash_tiles">
+                <button class="tile hero" t-on-click="() => this.open(state.data.book)">
+                    <span class="k">Contracted book — confirmed orders</span>
+                    <span class="v"><t t-out="money(state.data.book.gross)"/></span>
+                    <span class="d">
+                        <t t-out="state.data.book.count"/> contracts ·
+                        <t t-out="money(state.data.book.net)"/> net of VAT
+                    </span>
+                    <span class="d muted" t-if="!state.data.book.count">
+                        No confirmed contracts yet — the book fills as contracts are entered or imported.
+                    </span>
+                    <span class="hint">Open contracts</span>
+                </button>
+
+                <button class="tile" t-on-click="() => this.open(state.data.quotes)">
+                    <span class="k">Open quotations</span>
+                    <span class="v"><t t-out="money(state.data.quotes.gross)"/></span>
+                    <span class="d"><t t-out="state.data.quotes.count"/> awaiting signature</span>
+                    <span class="hint">Open list</span>
+                </button>
+
+                <button class="tile" t-if="state.data.pipeline.model" t-on-click="() => this.open(state.data.pipeline)">
+                    <span class="k">Sales pipeline</span>
+                    <span class="v"><t t-out="money(state.data.pipeline.expected)"/></span>
+                    <span class="d"><t t-out="state.data.pipeline.count"/> open leads &amp; opportunities</span>
+                    <span class="hint">Open pipeline</span>
+                </button>
+
+                <button class="tile" t-on-click="() => this.open(state.data.ar)">
+                    <span class="k">Receivables outstanding</span>
+                    <span class="v"><t t-out="money(state.data.ar.residual)"/></span>
+                    <span class="d">
+                        <span t-if="state.data.ar.overdue_count" class="crit">
+                            <t t-out="money(state.data.ar.overdue)"/> overdue (<t t-out="state.data.ar.overdue_count"/>)
+                        </span>
+                        <span t-else="">No overdue invoices</span>
+                    </span>
+                    <span class="hint">Open invoices</span>
+                </button>
+
+                <button class="tile" t-on-click="() => this.open(state.data.customers)">
+                    <span class="k">Customers</span>
+                    <span class="v"><t t-out="state.data.customers.count"/></span>
+                    <span class="d">with at least one sale</span>
+                    <span class="hint">Open customers</span>
+                </button>
+            </div>
+
+            <div class="o_aabaan_dash_grid">
+                <!-- Service lines -->
+                <div class="card">
+                    <h2>Book by service line</h2>
+                    <div t-if="!state.data.service_lines.length" class="empty">
+                        Populates once confirmed contracts carry a service line.
+                    </div>
+                    <div class="bars">
+                        <button class="bar" t-foreach="state.data.service_lines" t-as="item" t-key="item.key"
+                                t-on-click="() => this.open(item)">
+                            <span class="lbl" t-out="item.label"/>
+                            <span class="track"><span class="fill s1" t-attf-style="width: {{ barWidth(state.data.service_lines, item) }}%"/></span>
+                            <span class="num"><t t-out="money(item.gross)"/> · <t t-out="item.count"/></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Emirates -->
+                <div class="card">
+                    <h2>Book by emirate regime</h2>
+                    <div t-if="!state.data.emirates.length" class="empty">
+                        Populates once confirmed contracts carry an emirate regime.
+                    </div>
+                    <div class="bars">
+                        <button class="bar" t-foreach="state.data.emirates" t-as="item" t-key="item.key"
+                                t-on-click="() => this.open(item)">
+                            <span class="lbl" t-out="item.label"/>
+                            <span class="track"><span class="fill s1" t-attf-style="width: {{ barWidth(state.data.emirates, item) }}%"/></span>
+                            <span class="num"><t t-out="money(item.gross)"/> · <t t-out="item.count"/></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Renewals -->
+                <div class="card wide" t-if="state.data.renewals.length">
+                    <h2>Renewal pipeline</h2>
+                    <div class="renew">
+                        <button t-foreach="state.data.renewals" t-as="item" t-key="item.key"
+                                t-attf-class="rn {{ item.status or '' }}" t-on-click="() => this.open(item)">
+                            <span class="k" t-out="item.label"/>
+                            <span class="v" t-out="money(item.gross)"/>
+                            <span class="d"><t t-out="item.count"/> contracts</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visits -->
+                <div class="card wide">
+                    <h2>Field service</h2>
+                    <div t-if="!state.data.visits.by_type.length and !state.data.visits.cards.length" class="empty">
+                        Visit metrics populate once the Field Service schedule is generated.
+                    </div>
+                    <div class="chips" t-if="state.data.visits.by_type.length">
+                        <button class="chipbtn" t-foreach="state.data.visits.by_type" t-as="item" t-key="item.key"
+                                t-on-click="() => this.open(item)">
+                            <span t-out="item.label"/> <b t-out="item.count"/>
+                        </button>
+                    </div>
+                    <div class="renew" t-if="state.data.visits.cards.length">
+                        <button t-foreach="state.data.visits.cards" t-as="item" t-key="item.key"
+                                t-attf-class="rn {{ item.status or '' }}" t-on-click="() => this.open(item)">
+                            <span class="k" t-out="item.label"/>
+                            <span class="v" t-out="item.count"/>
+                            <span class="d">tasks</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</t>
+
+</templates>
