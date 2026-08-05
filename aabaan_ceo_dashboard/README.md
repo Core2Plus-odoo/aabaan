@@ -19,6 +19,12 @@ letterhead — ink masthead with the orange slash.
   SLA-deadline breaches (`x_sla_due`).
 - **Receivables** — posted customer invoices outstanding, with the overdue
   slice, and the customer count.
+- **Client industry split** — the book grouped by the customer's Industry
+  (`res.partner.industry_id`; set it on the contact or map it at import).
+- **Contract size mix** — five value bands from micro-contracts to majors.
+- **Month-by-month renewal timeline** — overdue, the next 12 calendar
+  months, and the tail, under the headline renewal buckets.
+- **F&B premises count** (Dubai LO 11 flag from the visit module).
 
 **Every tile, bar and chip is a drill-down**: it opens the underlying
 records as a filtered list view, so the number on screen is always one

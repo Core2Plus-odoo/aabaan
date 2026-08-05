@@ -105,6 +105,39 @@
                     </div>
                 </div>
 
+                <!-- Client industry -->
+                <div class="card">
+                    <h2>Book by client industry</h2>
+                    <div t-if="!state.data.industries.length" class="empty">
+                        Populates once customers carry an Industry (set it on the
+                        contact form; it is imported with the customer master).
+                    </div>
+                    <div class="bars">
+                        <button class="bar" t-foreach="state.data.industries.slice(0, 8)" t-as="item" t-key="item.key"
+                                t-on-click="() => this.open(item)">
+                            <span class="lbl" t-out="item.label"/>
+                            <span class="track"><span class="fill s1" t-attf-style="width: {{ barWidth(state.data.industries, item) }}%"/></span>
+                            <span class="num"><t t-out="money(item.gross)"/> · <t t-out="item.count"/></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Contract size mix -->
+                <div class="card">
+                    <h2>Contract size mix</h2>
+                    <div t-if="!state.data.book.count" class="empty">
+                        Populates with the first confirmed contracts.
+                    </div>
+                    <div class="bars">
+                        <button class="bar" t-foreach="state.data.size_bands" t-as="item" t-key="item.key"
+                                t-on-click="() => this.open(item)">
+                            <span class="lbl" t-out="item.label"/>
+                            <span class="track"><span class="fill s1" t-attf-style="width: {{ barWidth(state.data.size_bands, item) }}%"/></span>
+                            <span class="num"><t t-out="money(item.gross)"/> · <t t-out="item.count"/></span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Renewals -->
                 <div class="card wide" t-if="state.data.renewals.length">
                     <h2>Renewal pipeline</h2>
@@ -116,6 +149,18 @@
                             <span class="d"><t t-out="item.count"/> contracts</span>
                         </button>
                     </div>
+                    <div class="months" t-if="state.data.renewal_months.length">
+                        <button class="mcol" t-foreach="state.data.renewal_months" t-as="item" t-key="item.key"
+                                t-on-click="() => this.open(item)"
+                                t-att-title="item.label + ': ' + money(item.gross) + ' / ' + item.count + ' contracts'">
+                            <span class="mv" t-out="item.count ? fmt(item.gross) : ''"/>
+                            <span class="mtrack">
+                                <span t-attf-class="mfill {{ item.status or '' }}"
+                                      t-attf-style="height: {{ monthHeight(state.data.renewal_months, item) }}%"/>
+                            </span>
+                            <span class="ml" t-out="item.label"/>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Visits -->
@@ -124,10 +169,14 @@
                     <div t-if="!state.data.visits.by_type.length and !state.data.visits.cards.length" class="empty">
                         Visit metrics populate once the Field Service schedule is generated.
                     </div>
-                    <div class="chips" t-if="state.data.visits.by_type.length">
+                    <div class="chips" t-if="state.data.visits.by_type.length or state.data.fnb">
                         <button class="chipbtn" t-foreach="state.data.visits.by_type" t-as="item" t-key="item.key"
                                 t-on-click="() => this.open(item)">
                             <span t-out="item.label"/> <b t-out="item.count"/>
+                        </button>
+                        <button class="chipbtn" t-if="state.data.fnb"
+                                t-on-click="() => this.open(state.data.fnb)">
+                            <span t-out="state.data.fnb.label"/> <b t-out="state.data.fnb.count"/>
                         </button>
                     </div>
                     <div class="renew" t-if="state.data.visits.cards.length">
