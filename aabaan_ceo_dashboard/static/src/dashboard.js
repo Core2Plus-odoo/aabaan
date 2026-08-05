@@ -37,6 +37,11 @@ export class AabaanCeoDashboard extends Component {
         return Math.max(2, Math.round((100 * (item.gross || 0)) / max));
     }
 
+    monthHeight(items, item) {
+        const max = Math.max(1, ...items.map((i) => i.gross || 0));
+        return Math.max(item.gross ? 4 : 0, Math.round((100 * (item.gross || 0)) / max));
+    }
+
     open(item) {
         if (!item || !item.model) return;
         this.action.doAction({

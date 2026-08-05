@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan CEO Dashboard',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'category': 'Reporting',
     'summary': 'Live, drillable executive dashboard: contract book, renewals, visits, pipeline, receivables',
     'description': """

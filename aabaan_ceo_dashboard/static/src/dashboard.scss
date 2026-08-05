@@ -141,6 +141,31 @@
             }
         }
 
+        .months {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: 1fr;
+            gap: 4px;
+            align-items: end;
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px solid #e5e3db;
+
+            .mcol {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 3px;
+                cursor: pointer;
+                min-width: 0;
+                &:hover .mfill { filter: brightness(1.1); }
+                .mv { font-size: 9.5px; color: #8a877f; font-variant-numeric: tabular-nums; height: 13px; white-space: nowrap; }
+                .mtrack { display: flex; align-items: flex-end; height: 68px; width: 100%; max-width: 34px; background: rgba(42, 120, 214, 0.08); border-radius: 3px 3px 0 0; }
+                .mfill { display: block; width: 100%; background: #2a78d6; border-radius: 3px 3px 0 0; &.critical { background: var(--ab-crit); } }
+                .ml { font-size: 10px; color: #53514b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+            }
+        }
+
         .chips {
             display: flex;
             gap: 8px;

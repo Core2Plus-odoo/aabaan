@@ -1,6 +1,8 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 from datetime import timedelta
 
+from dateutil.relativedelta import relativedelta
+
 from odoo import api, fields, models
 
 
@@ -81,7 +83,10 @@ class AabaanCeoDashboard(models.AbstractModel):
             'quotes': {},
             'service_lines': self._group_amounts('sale.order', book_domain, 'x_service_line'),
             'emirates': self._group_amounts('sale.order', book_domain, 'x_emirate_regime'),
+            'industries': [],
+            'size_bands': [],
             'renewals': [],
+            'renewal_months': [],
             'visits': {'by_type': [], 'cards': []},
             'pipeline': {},
             'ar': {},
@@ -111,6 +116,85 @@ class AabaanCeoDashboard(models.AbstractModel):
                    [('end_date', '>=', today_s), ('end_date', '<=', in90_s)], 'warning')
             bucket('later', 'Beyond 90 days', [('end_date', '>', in90_s)])
             bucket('open_ended', 'No end date set', [('end_date', '=', False)])
+
+            # month-by-month renewal timeline: everything before this month is
+            # "overdue"; then the next 12 calendar months; then one tail bucket.
+            month_start = today.replace(day=1)
+            horizon = month_start + relativedelta(months=12)
+            past_domain = book_domain + [('end_date', '!=', False),
+                                         ('end_date', '<', fields.Date.to_string(month_start))]
+            p_total, p_cnt = self._sums('sale.order', past_domain,
+                                        ['amount_total:sum', '__count'])
+            data['renewal_months'].append({
+                'key': 'past', 'label': 'Overdue', 'gross': p_total, 'count': p_cnt,
+                'status': 'critical', 'model': 'sale.order', 'domain': past_domain,
+            })
+            for offset in range(12):
+                m_from = month_start + relativedelta(months=offset)
+                m_to = month_start + relativedelta(months=offset + 1)
+                m_domain = book_domain + [
+                    ('end_date', '>=', fields.Date.to_string(m_from)),
+                    ('end_date', '<', fields.Date.to_string(m_to))]
+                m_total, m_cnt = self._sums('sale.order', m_domain,
+                                            ['amount_total:sum', '__count'])
+                data['renewal_months'].append({
+                    'key': m_from.strftime('%Y-%m'), 'label': m_from.strftime('%b'),
+                    'gross': m_total, 'count': m_cnt,
+                    'model': 'sale.order', 'domain': m_domain,
+                })
+            tail_domain = book_domain + [('end_date', '>=', fields.Date.to_string(horizon))]
+            t_total, t_cnt = self._sums('sale.order', tail_domain,
+                                        ['amount_total:sum', '__count'])
+            data['renewal_months'].append({
+                'key': 'beyond', 'label': 'Later', 'gross': t_total, 'count': t_cnt,
+                'model': 'sale.order', 'domain': tail_domain,
+            })
+
+        # book by client industry (res.partner.industry_id)
+        industry_map = {}
+        for partner, total, count in Sale._read_group(
+                book_domain, ['partner_id'], ['amount_total:sum', '__count']):
+            industry = partner.industry_id
+            entry = industry_map.setdefault(industry.id or 0, {
+                'key': str(industry.id or 'none'),
+                'label': industry.name or 'Industry not set',
+                'gross': 0.0, 'count': 0, 'partners': 0,
+                'model': 'sale.order',
+                'domain': book_domain + [
+                    ('partner_id.industry_id', '=', industry.id or False)],
+            })
+            entry['gross'] += total or 0.0
+            entry['count'] += count
+            entry['partners'] += 1
+        data['industries'] = sorted(
+            industry_map.values(), key=lambda item: -item['gross'])
+
+        # contract size mix
+        for key, label, extra in (
+                ('lt500', 'Below 500', [('amount_total', '<', 500)]),
+                ('b500', '500 – 999',
+                 [('amount_total', '>=', 500), ('amount_total', '<', 1000)]),
+                ('b1k', '1,000 – 4,999',
+                 [('amount_total', '>=', 1000), ('amount_total', '<', 5000)]),
+                ('b5k', '5,000 – 19,999',
+                 [('amount_total', '>=', 5000), ('amount_total', '<', 20000)]),
+                ('b20k', '20,000 and above', [('amount_total', '>=', 20000)])):
+            domain = book_domain + extra
+            b_total, b_cnt = self._sums('sale.order', domain,
+                                        ['amount_total:sum', '__count'])
+            data['size_bands'].append({
+                'key': key, 'label': label, 'gross': b_total, 'count': b_cnt,
+                'model': 'sale.order', 'domain': domain,
+            })
+
+        # Dubai LO 11 F&B premises flag (from aabaan_visit_schedule)
+        if 'is_fnb_premises' in Sale._fields:
+            fnb_domain = book_domain + [('is_fnb_premises', '=', True)]
+            data['fnb'] = {
+                'label': 'F&B premises (Dubai LO 11)',
+                'count': Sale.search_count(fnb_domain),
+                'model': 'sale.order', 'domain': fnb_domain,
+            }
 
         # field service visits
         Task = env['project.task']

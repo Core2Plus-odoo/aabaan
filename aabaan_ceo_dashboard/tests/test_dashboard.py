@@ -10,9 +10,11 @@ class TestCeoDashboard(TransactionCase):
         manual x_* fields are absent and the database is empty."""
         data = self.env['aabaan.ceo.dashboard'].get_data()
         for key in ('company', 'currency', 'as_of', 'book', 'quotes',
-                    'service_lines', 'emirates', 'renewals', 'visits',
+                    'service_lines', 'emirates', 'industries', 'size_bands',
+                    'renewals', 'renewal_months', 'visits',
                     'pipeline', 'ar', 'customers'):
             self.assertIn(key, data)
+        self.assertEqual(len(data['size_bands']), 5)
         self.assertIsInstance(data['book']['gross'], (int, float))
         self.assertIsInstance(data['book']['count'], int)
         self.assertIsInstance(data['service_lines'], list)
