@@ -270,9 +270,11 @@ class SaleOrder(models.Model):
         self.ensure_one()
         Task = self.env['project.task']
         vals = {
-            'name': _("Visit %(no)s/%(total)s · %(order)s · %(partner)s",
-                      no=visit_no, total=total, order=self.name,
-                      partner=self.partner_id.display_name or ''),
+            # Client name first — the Maintenance Calendar shows the task name,
+            # and the customer must be the first thing visible on the event.
+            'name': _("%(partner)s · Visit %(no)s/%(total)s · %(order)s",
+                      partner=self.partner_id.display_name or '',
+                      no=visit_no, total=total, order=self.name),
             'project_id': project.id,
             'partner_id': self.partner_id.id,
         }
@@ -468,9 +470,9 @@ class SaleOrder(models.Model):
             # Complaint response is due immediately, even on a non-working day.
             planned_day = today
         vals = {
-            'name': _("%(label)s · %(order)s · %(partner)s", label=label,
-                      order=self.name,
-                      partner=self.partner_id.display_name or ''),
+            'name': _("%(partner)s · %(label)s · %(order)s",
+                      partner=self.partner_id.display_name or '',
+                      label=label, order=self.name),
             'project_id': project.id,
             'partner_id': self.partner_id.id,
         }

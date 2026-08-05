@@ -143,6 +143,10 @@ class TestVisitSchedule(TransactionCase):
                          "absorbed, not duplicated")
         self.assertEqual(sorted(tasks.mapped('x_visit_no')), list(range(1, 13)))
         for task in tasks:
+            self.assertTrue(
+                task.name.startswith('AAM Properties (test)'),
+                "the client name must lead the visit name so it shows first "
+                "on the Maintenance Calendar")
             self.assertEqual(task.stage_id.name, 'Scheduled')
             self.assertEqual(task.x_visit_type, 'routine')
             self.assertEqual(task.x_emirate, 'ajman')
