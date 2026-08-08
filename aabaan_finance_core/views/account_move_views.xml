@@ -34,8 +34,6 @@
                 <filter name="f_future" string="Future Due"
                         domain="[('recovery_bucket', '=', 'future')]"/>
                 <separator/>
-                <filter name="f_overdue" string="Overdue"
-                        domain="[('invoice_date_due', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
                 <filter name="f_promised" string="Payment Promised"
                         domain="[('recovery_status', '=', 'payment_promised')]"/>
                 <filter name="f_under" string="Under Recovery"
@@ -47,8 +45,8 @@
                             context="{'group_by': 'recovery_status'}"/>
                     <filter name="g_partner" string="Customer"
                             context="{'group_by': 'partner_id'}"/>
-                    <filter name="g_due" string="Due Month"
-                            context="{'group_by': 'invoice_date_due:month'}"/>
+                    <filter name="g_due" string="Due Date"
+                            context="{'group_by': 'invoice_date_due'}"/>
                 </group>
             </search>
         </field>
