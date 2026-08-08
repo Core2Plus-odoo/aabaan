@@ -4,8 +4,7 @@
         <field name="name">account.move.list.aabaan.recovery</field>
         <field name="model">account.move</field>
         <field name="arch" type="xml">
-            <list edit="1" create="0" decoration-danger="recovery_bucket == 'previous'"
-                  decoration-warning="invoice_date_due and invoice_date_due &lt; current_date">
+            <list edit="1" create="0" decoration-danger="recovery_bucket == 'previous'">
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="invoice_date" optional="show"/>
@@ -36,7 +35,7 @@
                         domain="[('recovery_bucket', '=', 'future')]"/>
                 <separator/>
                 <filter name="f_overdue" string="Overdue"
-                        domain="[('invoice_date_due', '&lt;', 'today')]"/>
+                        domain="[('invoice_date_due', '&lt;', context_today().strftime('%Y-%m-%d'))]"/>
                 <filter name="f_promised" string="Payment Promised"
                         domain="[('recovery_status', '=', 'payment_promised')]"/>
                 <filter name="f_under" string="Under Recovery"
