@@ -31,6 +31,7 @@ Priority 2 — Recovery classification
         'data/cron.xml',
         'views/account_move_views.xml',
     ],
+    'post_init_hook': '_post_init_hook',
     'installable': True,
     'application': False,
 }

@@ -120,28 +120,42 @@ class AccountMove(models.Model):
         emirate_plan, service_plan = self._aabaan_analytic_plans()
         if not emirate_plan and not service_plan:
             return  # plans not configured on this database — nothing to enforce
-        moves = self.filtered(lambda m: m.move_type in (
+        invoices = self.filtered(lambda m: m.move_type in (
             'out_invoice', 'out_refund', 'in_invoice', 'in_refund'))
-        moves._aabaan_autofill_analytic(emirate_plan, service_plan)
-        for move in moves:
+        invoices._aabaan_autofill_analytic(emirate_plan, service_plan)
+
+        def check(move, line, required_plans):
+            plans = self._aabaan_line_plans(line.analytic_distribution)
+            missing = [plan.name for plan in required_plans
+                       if plan and plan.id not in plans]
+            if missing:
+                raise UserError(_(
+                    "%(move)s cannot be posted: line \"%(line)s\" has no "
+                    "%(missing)s analytic tag.\n\nEvery financial transaction "
+                    "must be traceable through the branch (Finance policy "
+                    "§7/§20). Set the analytic distribution on the line, "
+                    "then post.",
+                    move=move.display_name,
+                    line=(line.name or line.product_id.display_name or '?'),
+                    missing=" and ".join(missing)))
+
+        for move in invoices:
+            # Customer invoices: branch AND service. Vendor bills: branch only
+            # (overheads like utilities have no service line — §7 requires
+            # Branch → Department → Expense Category, not a service).
+            required = [emirate_plan, service_plan] \
+                if move.move_type in ('out_invoice', 'out_refund') \
+                else [emirate_plan]
             for line in move.invoice_line_ids.filtered(
                     lambda l: l.display_type == 'product'):
-                plans = self._aabaan_line_plans(line.analytic_distribution)
-                missing = []
-                if emirate_plan and emirate_plan.id not in plans:
-                    missing.append(emirate_plan.name)
-                if service_plan and service_plan.id not in plans:
-                    missing.append(service_plan.name)
-                if missing:
-                    raise UserError(_(
-                        "%(move)s cannot be posted: line \"%(line)s\" has no "
-                        "%(missing)s analytic tag.\n\nEvery financial "
-                        "transaction must be traceable to a branch and a "
-                        "service (Finance policy §1/§20). Set the analytic "
-                        "distribution on the line, then post.",
-                        move=move.display_name,
-                        line=(line.name or line.product_id.display_name or '?'),
-                        missing=" and ".join(missing)))
+                check(move, line, required)
+
+        # Manual journal entries hitting expense accounts need the branch too.
+        for move in self.filtered(lambda m: m.move_type == 'entry'):
+            for line in move.line_ids.filtered(
+                    lambda l: l.account_id.account_type
+                    and l.account_id.account_type.startswith('expense')):
+                check(move, line, [emirate_plan])
 
     def _post(self, soft=True):
         self._aabaan_check_analytic_segregation()

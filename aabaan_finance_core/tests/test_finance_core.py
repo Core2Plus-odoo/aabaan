@@ -62,3 +62,28 @@ class TestFinanceCore(TransactionCase):
         bypass = self._invoice('2026-08-25', tagged_line=False,
                                post_ctx={'aabaan_skip_analytic_check': True})
         self.assertEqual(bypass.state, 'posted')
+
+    @freeze_time('2026-08-10')
+    def test_vendor_bill_requires_branch_only(self):
+        def bill(dist):
+            move = self.env['account.move'].create({
+                'move_type': 'in_invoice',
+                'partner_id': self.partner.id,
+                'invoice_date': '2026-08-05',
+                'invoice_line_ids': [(0, 0, {
+                    'name': 'Office utilities', 'quantity': 1,
+                    'price_unit': 500,
+                    'analytic_distribution': dist or False,
+                })],
+            })
+            move.action_post()
+            return move
+        with self.assertRaises(UserError,
+                               msg="untagged bill must not post"):
+            bill({})
+        ok = bill({str(self.aa_ajman.id): 100})  # branch alone is enough
+        self.assertEqual(ok.state, 'posted')
+
+    def test_department_plan_seeded(self):
+        self.assertTrue(self.env['account.analytic.plan'].search(
+            [('name', 'ilike', 'department')], limit=1))
