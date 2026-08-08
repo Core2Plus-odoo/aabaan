@@ -20,46 +20,14 @@
         </field>
     </record>
 
-    <record id="view_move_search_recovery" model="ir.ui.view">
-        <field name="name">account.move.search.aabaan.recovery</field>
-        <field name="model">account.move</field>
-        <field name="arch" type="xml">
-            <search>
-                <field name="name"/>
-                <field name="partner_id"/>
-                <filter name="f_previous" string="Previous Recovery"
-                        domain="[('recovery_bucket', '=', 'previous')]"/>
-                <filter name="f_current" string="Current Recovery"
-                        domain="[('recovery_bucket', '=', 'current')]"/>
-                <filter name="f_future" string="Future Due"
-                        domain="[('recovery_bucket', '=', 'future')]"/>
-                <separator/>
-                <filter name="f_promised" string="Payment Promised"
-                        domain="[('recovery_status', '=', 'payment_promised')]"/>
-                <filter name="f_under" string="Under Recovery"
-                        domain="[('recovery_status', '=', 'under_recovery')]"/>
-                <group expand="0" string="Group By">
-                    <filter name="g_bucket" string="Recovery Bucket"
-                            context="{'group_by': 'recovery_bucket'}"/>
-                    <filter name="g_status" string="Recovery Status"
-                            context="{'group_by': 'recovery_status'}"/>
-                    <filter name="g_partner" string="Customer"
-                            context="{'group_by': 'partner_id'}"/>
-                    <filter name="g_due" string="Due Date"
-                            context="{'group_by': 'invoice_date_due'}"/>
-                </group>
-            </search>
-        </field>
-    </record>
 
     <record id="action_recovery_report" model="ir.actions.act_window">
         <field name="name">Recovery</field>
         <field name="res_model">account.move</field>
         <field name="view_mode">list,pivot,form</field>
         <field name="view_id" ref="view_move_list_recovery"/>
-        <field name="search_view_id" ref="view_move_search_recovery"/>
         <field name="domain">[('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('payment_state', 'in', ('not_paid', 'partial'))]</field>
-        <field name="context">{'search_default_g_bucket': 1}</field>
+        <field name="context">{'group_by': 'recovery_bucket'}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">Nothing to recover</p>
             <p>Open customer invoices appear here classified as Previous
