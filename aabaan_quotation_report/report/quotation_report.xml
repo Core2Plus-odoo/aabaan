@@ -250,8 +250,9 @@
                             <div>Shop #1 &amp; 2, Mohammed Ali Building, Al Nuaimiya, Ajman.</div>
                         </td>
                         <td style="vertical-align: bottom; text-align: right;">
-                            <div style="font-weight: bold;">+971 55 859 8834 | +971 800 22226</div>
-                            <div>aabanservices@gmail.com</div>
+                            <div style="font-weight: bold;">800 AABAN (800 22226)</div>
+                            <div style="font-weight: bold;">+971 55 859 8834 | +971 55 866 6530</div>
+                            <div>infoaabanservices@gmail.com</div>
                             <div style="color: #58585E; margin-top: 2px;">
                                 <t t-if="company.vat">TRN: <span t-esc="company.vat"/></t>
                                 <t t-if="company.company_registry"> &#183; Trade Licence No: <span t-esc="company.company_registry"/></t>
