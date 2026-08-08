@@ -26,10 +26,11 @@ Priority 2 — Recovery classification
 """,
     'author': 'C2P Consultants FZC LLC',
     'license': 'OPL-1',
-    'depends': ['account', 'aabaan_visit_schedule'],
+    'depends': ['account', 'purchase', 'aabaan_visit_schedule'],
     'data': [
         'data/cron.xml',
         'views/account_move_views.xml',
+        'report/payment_voucher.xml',
     ],
     'post_init_hook': '_post_init_hook',
     'installable': True,
