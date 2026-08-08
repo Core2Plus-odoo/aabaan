@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_move_list_recovery" model="ir.ui.view">
+        <field name="name">account.move.list.aabaan.recovery</field>
+        <field name="model">account.move</field>
+        <field name="arch" type="xml">
+            <list edit="1" create="0" decoration-danger="recovery_bucket == 'previous'"
+                  decoration-warning="invoice_date_due and invoice_date_due &lt; current_date">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="invoice_date" optional="show"/>
+                <field name="invoice_date_due"/>
+                <field name="recovery_bucket"/>
+                <field name="recovery_status" optional="show"/>
+                <field name="recovery_promise_date" optional="show"/>
+                <field name="payment_state"/>
+                <field name="amount_total" sum="Total"/>
+                <field name="amount_residual" sum="Outstanding"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_move_search_recovery" model="ir.ui.view">
+        <field name="name">account.move.search.aabaan.recovery</field>
+        <field name="model">account.move</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <filter name="f_previous" string="Previous Recovery"
+                        domain="[('recovery_bucket', '=', 'previous')]"/>
+                <filter name="f_current" string="Current Recovery"
+                        domain="[('recovery_bucket', '=', 'current')]"/>
+                <filter name="f_future" string="Future Due"
+                        domain="[('recovery_bucket', '=', 'future')]"/>
+                <separator/>
+                <filter name="f_overdue" string="Overdue"
+                        domain="[('invoice_date_due', '&lt;', 'today')]"/>
+                <filter name="f_promised" string="Payment Promised"
+                        domain="[('recovery_status', '=', 'payment_promised')]"/>
+                <filter name="f_under" string="Under Recovery"
+                        domain="[('recovery_status', '=', 'under_recovery')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="g_bucket" string="Recovery Bucket"
+                            context="{'group_by': 'recovery_bucket'}"/>
+                    <filter name="g_status" string="Recovery Status"
+                            context="{'group_by': 'recovery_status'}"/>
+                    <filter name="g_partner" string="Customer"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="g_due" string="Due Month"
+                            context="{'group_by': 'invoice_date_due:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_recovery_report" model="ir.actions.act_window">
+        <field name="name">Recovery</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,pivot,form</field>
+        <field name="view_id" ref="view_move_list_recovery"/>
+        <field name="search_view_id" ref="view_move_search_recovery"/>
+        <field name="domain">[('move_type', '=', 'out_invoice'), ('state', '=', 'posted'), ('payment_state', 'in', ('not_paid', 'partial'))]</field>
+        <field name="context">{'search_default_g_bucket': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Nothing to recover</p>
+            <p>Open customer invoices appear here classified as Previous
+               (before Aug 2026), Current and Future — filter and group by
+               branch and service via the analytic dimensions.</p>
+        </field>
+    </record>
+
+    <menuitem id="menu_recovery_report" name="Recovery"
+              parent="account.menu_finance_receivables"
+              action="aabaan_finance_core.action_recovery_report"
+              sequence="9"/>
+</odoo>
