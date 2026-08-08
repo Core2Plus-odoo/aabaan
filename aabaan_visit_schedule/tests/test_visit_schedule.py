@@ -154,6 +154,9 @@ class TestVisitSchedule(TransactionCase):
             local = task.planned_date_begin + DUBAI_TZ_OFFSET
             self.assertLess(local.weekday(), 5,
                             f"visit planned on non-working day {local}")
+            self.assertEqual(task.visit_date, task.planned_date_begin.date(),
+                             "visit_date must mirror the planned day for the "
+                             "date-only Maintenance Calendar")
 
         begins = sorted(tasks.mapped('planned_date_begin'))
         self.assertEqual((begins[0] + DUBAI_TZ_OFFSET).date(),
