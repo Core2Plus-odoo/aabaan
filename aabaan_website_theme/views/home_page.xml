@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="home_v2" name="Aabaan Home (Booking-first)">
+        <t t-call="website.layout">
+            <div id="wrap" class="oe_structure">
+                <style>
+                    .ab-orange { color: #c94f16; }
+                    .ab-hero { background: linear-gradient(135deg, #ffffff 55%, rgba(239,125,37,.14)); padding: 56px 0 40px; }
+                    .ab-hero h1 { font-weight: 800; max-width: 22ch; }
+                    .ab-chip { display: inline-block; border: 1px solid #e5e0d8; border-radius: 999px; padding: 4px 14px; margin: 3px; color: #6b675f; font-size: .85rem; text-decoration: none; }
+                    .ab-chip:hover { border-color: #ef7d25; color: #c94f16; }
+                    .ab-trust { border-top: 1px solid #eee7dc; border-bottom: 1px solid #eee7dc; padding: 12px 0; font-size: .85rem; color: #6b675f; }
+                    .ab-trust b { color: #17171a; }
+                    .ab-card { border: 1px solid #e5e0d8; border-radius: 14px; padding: 20px; height: 100%; transition: all .15s; }
+                    .ab-card:hover { border-color: #ef7d25; transform: translateY(-2px); box-shadow: 0 10px 30px rgba(23,23,26,.08); }
+                    .ab-card .ic { font-size: 1.8rem; }
+                    .ab-from b { color: #c94f16; }
+                    .ab-step-n { width: 34px; height: 34px; border-radius: 999px; background: #17171a; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+                    .ab-amc { border-left: 4px solid #ef7d25; }
+                    .ab-sticky { position: sticky; bottom: 0; z-index: 100; background: #fff; border-top: 3px solid #ef7d25; padding: 10px 0; }
+                    .ab-btn-book { background: #ef7d25; color: #fff !important; font-weight: 800; border-radius: 10px; }
+                    .ab-btn-wa { background: #0a7d33; color: #fff !important; font-weight: 800; border-radius: 10px; }
+                    .ab-btn-call { background: #17171a; color: #fff !important; font-weight: 800; border-radius: 10px; }
+                    .ab-foot { background: #17171a; color: #c9c6bf; padding: 28px 0; font-size: .9rem; }
+                    .ab-foot b { color: #f4f2ee; }
+                    .ab-foot .ab-o { color: #ef7d25; font-weight: 700; }
+                </style>
+
+                <!-- Hero -->
+                <section class="ab-hero">
+                    <div class="container">
+                        <h1 class="display-6">Pest-free, clean and certified —
+                            <span class="ab-orange">booked in 60 seconds</span></h1>
+                        <p class="text-muted col-lg-7 px-0">Municipality-approved pest control,
+                            water-tank cleaning, anti-termite and deep cleaning. Same-day response
+                            in Dubai. Trusted by businesses and homes across the UAE.</p>
+                        <a href="/booking" class="btn btn-lg ab-btn-book px-4">Book a visit now</a>
+                        <div class="mt-3">
+                            <a class="ab-chip" href="/booking">Cockroaches</a>
+                            <a class="ab-chip" href="/booking">Bed bugs</a>
+                            <a class="ab-chip" href="/booking">Termites</a>
+                            <a class="ab-chip" href="/booking">Water tank</a>
+                            <a class="ab-chip" href="/booking">Deep clean</a>
+                            <a class="ab-chip" href="/booking">Rodents</a>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Trust bar -->
+                <section class="ab-trust">
+                    <div class="container d-flex flex-wrap gap-3">
+                        <span>✓ <b>Municipality approved</b> — Ajman, Sharjah &amp; Dubai LO 11</span>
+                        <span>✓ MOCCAE-approved pesticides</span>
+                        <span>✓ <b>10-year</b> termite warranty</span>
+                        <span>✓ TRN 104302919600003</span>
+                    </div>
+                </section>
+
+                <!-- Services -->
+                <section class="py-5">
+                    <div class="container">
+                        <h2 class="h4 fw-bold mb-1">What do you need done?</h2>
+                        <p class="text-muted mb-4">Fixed, upfront prices from the signed rate card — no surprises on site.</p>
+                        <div class="row g-3">
+                            <div class="col-md-4 col-sm-6"><a href="/booking" class="d-block text-decoration-none text-reset ab-card">
+                                <div class="ic">🪳</div><h3 class="h6 fw-bold mb-1">Pest Control — Home</h3>
+                                <div class="ab-from small text-muted">1BR apartment <b>from AED 200</b>/visit</div>
+                                <div class="ab-orange fw-bold small mt-2">Book a visit →</div></a></div>
+                            <div class="col-md-4 col-sm-6"><a href="/booking" class="d-block text-decoration-none text-reset ab-card">
+                                <div class="ic">🏢</div><h3 class="h6 fw-bold mb-1">Pest Control — Business</h3>
+                                <div class="ab-from small text-muted">Restaurants &amp; F&amp;B — <b>LO 11 compliant</b>, 2 visits/month</div>
+                                <div class="ab-orange fw-bold small mt-2">Get AMC quote →</div></a></div>
+                            <div class="col-md-4 col-sm-6"><a href="/booking" class="d-block text-decoration-none text-reset ab-card">
+                                <div class="ic">💧</div><h3 class="h6 fw-bold mb-1">Water Tank Cleaning</h3>
+                                <div class="ab-from small text-muted">From <b>AED 0.35</b>/gallon · certificate issued</div>
+                                <div class="ab-orange fw-bold small mt-2">Book a clean →</div></a></div>
+                            <div class="col-md-4 col-sm-6"><a href="/booking" class="d-block text-decoration-none text-reset ab-card">
+                                <div class="ic">🐜</div><h3 class="h6 fw-bold mb-1">Anti-Termite Treatment</h3>
+                                <div class="ab-from small text-muted"><b>AED 14.50–18</b>/m² · 10-year warranty</div>
+                                <div class="ab-orange fw-bold small mt-2">Request survey →</div></a></div>
+                            <div class="col-md-4 col-sm-6"><a href="/booking" class="d-block text-decoration-none text-reset ab-card">
+                                <div class="ic">🧽</div><h3 class="h6 fw-bold mb-1">Deep Cleaning</h3>
+                                <div class="ab-from small text-muted">Room-by-room scope, one-off or move-in</div>
+                                <div class="ab-orange fw-bold small mt-2">Get a price →</div></a></div>
+                            <div class="col-md-4 col-sm-6"><a href="tel:80022226" class="d-block text-decoration-none text-reset ab-card">
+                                <div class="ic">🚨</div><h3 class="h6 fw-bold mb-1">Emergency Call-out</h3>
+                                <div class="ab-from small text-muted">Same-day in Dubai · 24–48h elsewhere</div>
+                                <div class="ab-orange fw-bold small mt-2">Call 800 AABAN →</div></a></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3 steps -->
+                <section class="py-5" style="background:#f6f4ef;">
+                    <div class="container">
+                        <h2 class="h4 fw-bold mb-4">Booked in three steps</h2>
+                        <div class="row g-3">
+                            <div class="col-md-4"><div class="ab-card bg-white">
+                                <div class="ab-step-n mb-2">1</div><h3 class="h6 fw-bold">Pick the service</h3>
+                                <p class="small text-muted mb-0">Choose the problem and your property type — the price shows before you commit.</p></div></div>
+                            <div class="col-md-4"><div class="ab-card bg-white">
+                                <div class="ab-step-n mb-2">2</div><h3 class="h6 fw-bold">Pick a day</h3>
+                                <p class="small text-muted mb-0">Choose a visit day that suits you. Same-day for complaints in Dubai.</p></div></div>
+                            <div class="col-md-4"><div class="ab-card bg-white">
+                                <div class="ab-step-n mb-2">3</div><h3 class="h6 fw-bold">Certified visit</h3>
+                                <p class="small text-muted mb-0">A uniformed technician treats, and you get the report — and certificate where due.</p></div></div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- AMC + coverage -->
+                <section class="py-5">
+                    <div class="container"><div class="row g-3">
+                        <div class="col-md-6"><div class="ab-card ab-amc">
+                            <h3 class="h6 fw-bold">Annual contracts (AMC) — for buildings &amp; businesses</h3>
+                            <ul class="small text-muted mb-3">
+                                <li><b>Yearly 12 / 4 / 2 visits</b> — scheduled for you, reminders included</li>
+                                <li>Free follow-up every 3 days until any infestation clears</li>
+                                <li>Complaint response: <b>same-day Dubai</b>, 24–48h other emirates</li>
+                                <li>Municipality reporting handled (Dubai LO 11 monthly returns)</li>
+                            </ul>
+                            <a href="/contactus" class="btn btn-dark btn-sm fw-bold">Request an AMC proposal</a>
+                        </div></div>
+                        <div class="col-md-6"><div class="ab-card">
+                            <h3 class="h6 fw-bold">Where we work</h3>
+                            <ul class="small text-muted mb-0">
+                                <li><b>Ajman</b> — head of operations, same/next-day slots</li>
+                                <li><b>Sharjah</b> — incl. municipality fee handling</li>
+                                <li><b>Dubai</b> — Public Health Pest Control Agreement (LO 11)</li>
+                                <li><b>Umm Al Quwain &amp; Ras Al Khaimah</b> — scheduled routes</li>
+                            </ul>
+                        </div></div>
+                    </div></div>
+                </section>
+
+                <!-- Footer strip -->
+                <section class="ab-foot">
+                    <div class="container d-flex flex-wrap gap-4 justify-content-between">
+                        <span><b>Aaban Classic Building Cleaning L.L.C.</b><br/>
+                            Trade Licence 109374 · TRN 104302919600003</span>
+                        <span><b>Call</b> <span class="ab-o">800 AABAN</span> (800 22226)<br/>
+                            055 859 8834 · 055 866 6530</span>
+                        <span><b>Email</b><br/>infoaabanservices@gmail.com</span>
+                    </div>
+                </section>
+
+                <!-- Sticky action bar -->
+                <div class="ab-sticky">
+                    <div class="container d-flex gap-2">
+                        <a href="/booking" class="btn ab-btn-book flex-fill">📅 Book online</a>
+                        <a href="https://wa.me/971558598834" class="btn ab-btn-wa flex-fill">WhatsApp</a>
+                        <a href="tel:80022226" class="btn ab-btn-call flex-fill">☎ 800 AABAN</a>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <record id="page_home_v2" model="website.page">
+        <field name="name">Home (Booking-first)</field>
+        <field name="url">/home-v2</field>
+        <field name="view_id" ref="home_v2"/>
+        <field name="is_published" eval="True"/>
+    </record>
+</odoo>
