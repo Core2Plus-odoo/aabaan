@@ -96,10 +96,10 @@ MEGA_MENU_HTML = """
 """
 
 # Pages that must stay published even though this module does not own them:
-# the booking form the CTAs point at, the native contact page, and common
-# legal pages if the site has them.
+# the native contact page and common legal pages if the site has them.
+# (/booking is module-owned now.)
 KEEP_PUBLISHED_URLS = [
-    '/booking', '/contactus', '/contact',
+    '/contactus', '/contact',
     '/privacy', '/privacy-policy', '/terms', '/terms-of-use', '/legal',
 ]
 
@@ -138,16 +138,37 @@ def _rebuild_menu(env, website, root):
                              'website_id': website.id})
 
 
+def _module_pages(env):
+    data = env['ir.model.data'].search([
+        ('module', '=', 'aabaan_website_theme'),
+        ('model', '=', 'website.page'),
+    ])
+    return env['website.page'].browse(data.mapped('res_id')).exists()
+
+
+def _park_conflicting_pages(env):
+    """A website-specific legacy page at the same URL shadows a generic
+    module page in Odoo's page routing — visitors would still get the old
+    page (or a 404 once it is unpublished). Park every clash out of the
+    way: the legacy page moves to <url>-classic, unpublished, recoverable
+    from the page manager."""
+    Page = env['website.page']
+    ours = _module_pages(env)
+    for page in ours:
+        clashes = Page.search([
+            ('url', '=', page.url), ('id', 'not in', ours.ids)])
+        if clashes:
+            parked = '/home-classic' if page.url == '/' \
+                else page.url + '-classic'
+            clashes.write({'url': parked, 'is_published': False})
+
+
 def _retire_legacy_pages(env):
     """Unpublish every website page this module does not own (except the
     keep-list above). Nothing is deleted — the old pages stay in the page
     manager and can be republished with one click."""
-    our_page_ids = env['ir.model.data'].search([
-        ('module', '=', 'aabaan_website_theme'),
-        ('model', '=', 'website.page'),
-    ]).mapped('res_id')
     legacy = env['website.page'].search([
-        ('id', 'not in', our_page_ids),
+        ('id', 'not in', _module_pages(env).ids),
         ('url', 'not in', KEEP_PUBLISHED_URLS),
         ('is_published', '=', True),
     ])
@@ -165,18 +186,16 @@ def _apply_site_structure(env):
     - the top menu is wiped and rebuilt to exactly the defined set — only
       genuinely external links (http/mailto/tel) survive, so no history of
       duplicates or old dropdowns can persist;
-    - every legacy page is unpublished (see _retire_legacy_pages)."""
-    Page = env['website.page']
+    - legacy pages clashing with a module page URL are parked at
+      <url>-classic (they would shadow the module page in routing);
+    - every other legacy page is unpublished (see _retire_legacy_pages)."""
     Menu = env['website.menu']
     Website = env['website']
 
     home = env.ref('aabaan_website_theme.page_home_v2', raise_if_not_found=False)
-    if home:
-        old_homes = Page.search([('url', '=', '/'), ('id', '!=', home.id)])
-        if old_homes:
-            old_homes.write({'url': '/home-classic', 'is_published': False})
-        if home.url != '/':
-            home.write({'url': '/'})
+    if home and home.url != '/':
+        home.write({'url': '/'})
+    _park_conflicting_pages(env)
     if 'homepage_url' in Website._fields:
         Website.search([]).write({'homepage_url': False})
 
