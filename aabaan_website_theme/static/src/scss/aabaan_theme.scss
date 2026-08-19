@@ -1,0 +1,163 @@
+/* Aabaan website theme — brand ink #17171a, orange #ef7d25.
+   All .ab-* classes used by the code-defined pages live here so every page
+   shares one look and the templates stay markup-only. */
+
+/* ── Brand basics ─────────────────────────────────────────────── */
+.ab-orange { color: #c94f16; }
+
+.btn-primary,
+.btn-primary:focus {
+    background-color: #ef7d25;
+    border-color: #ef7d25;
+}
+.btn-primary:hover,
+.btn-primary:active {
+    background-color: #c94f16;
+    border-color: #c94f16;
+}
+
+/* Header: ink links, orange hover, and the Book a visit menu as a button */
+header .navbar .nav-link { color: #17171a; font-weight: 600; }
+header .navbar .nav-link:hover { color: #c94f16; }
+header .navbar .nav-link[href="/booking"] {
+    background: #ef7d25;
+    color: #fff !important;
+    border-radius: 10px;
+    padding: 6px 16px !important;
+    font-weight: 800;
+}
+
+/* ── Shared components ────────────────────────────────────────── */
+.ab-hero,
+.ab-svc-hero {
+    background: linear-gradient(135deg, #ffffff 55%, rgba(239, 125, 37, .14));
+    padding: 56px 0 40px;
+}
+.ab-svc-hero { padding: 44px 0 32px; }
+.ab-hero h1 { font-weight: 800; max-width: 22ch; }
+
+.ab-chip {
+    display: inline-block;
+    border: 1px solid #e5e0d8;
+    border-radius: 999px;
+    padding: 4px 14px;
+    margin: 3px;
+    color: #6b675f;
+    font-size: .85rem;
+    text-decoration: none;
+}
+.ab-chip:hover { border-color: #ef7d25; color: #c94f16; }
+
+.ab-trust {
+    border-top: 1px solid #eee7dc;
+    border-bottom: 1px solid #eee7dc;
+    padding: 12px 0;
+    font-size: .85rem;
+    color: #6b675f;
+}
+.ab-trust b { color: #17171a; }
+
+.ab-card {
+    border: 1px solid #e5e0d8;
+    border-radius: 14px;
+    padding: 20px;
+    height: 100%;
+    transition: all .15s;
+}
+a.ab-card:hover {
+    border-color: #ef7d25;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(23, 23, 26, .08);
+}
+.ab-card .ic { font-size: 1.8rem; }
+.ab-from b { color: #c94f16; }
+
+.ab-step-n {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: #17171a;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+}
+
+.ab-amc { border-left: 4px solid #ef7d25; }
+
+.ab-price-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #eee7dc;
+    padding: 9px 0;
+    font-size: .95rem;
+}
+.ab-price-row b { color: #c94f16; white-space: nowrap; }
+
+.ab-tick li { margin: 5px 0; }
+
+.ab-btn-book { background: #ef7d25; color: #fff !important; font-weight: 800; border-radius: 10px; }
+.ab-btn-wa { background: #0a7d33; color: #fff !important; font-weight: 800; border-radius: 10px; }
+.ab-btn-call { background: #17171a; color: #fff !important; font-weight: 800; border-radius: 10px; }
+
+.ab-cta-band { background: #17171a; color: #f4f2ee; padding: 26px 0; }
+.ab-cta-band .ab-o { color: #ef7d25; font-weight: 800; }
+
+/* Stat strip (About page) */
+.ab-stat { text-align: center; }
+.ab-stat .n { font-size: 1.9rem; font-weight: 800; color: #c94f16; }
+.ab-stat .l { font-size: .85rem; color: #6b675f; }
+
+/* FAQ accordion (native <details>, no JS) */
+.ab-faq details {
+    border: 1px solid #e5e0d8;
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+    background: #fff;
+}
+.ab-faq summary { font-weight: 700; color: #17171a; cursor: pointer; }
+.ab-faq details[open] { border-color: #ef7d25; }
+.ab-faq details p, .ab-faq details ul { margin: 10px 0 0; font-size: .92rem; color: #6b675f; }
+
+/* ── Site-wide footer ─────────────────────────────────────────── */
+/* The native wrapper (and its copyright strip) matches the dark band */
+#wrapwrap > footer, .o_footer { background: #17171a; color: #c9c6bf; }
+.o_footer_copyright { color: #8f8c85; }
+.ab-sitefoot { background: #17171a; color: #c9c6bf; padding: 36px 0 20px; font-size: .9rem; }
+.ab-sitefoot b, .ab-sitefoot h5 { color: #f4f2ee; }
+.ab-sitefoot h5 { font-size: .95rem; font-weight: 800; margin-bottom: 10px; }
+.ab-sitefoot a { color: #c9c6bf; text-decoration: none; }
+.ab-sitefoot a:hover { color: #ef7d25; }
+.ab-sitefoot .ab-o { color: #ef7d25; font-weight: 700; }
+.ab-sitefoot ul { list-style: none; padding: 0; margin: 0; }
+.ab-sitefoot li { margin: 4px 0; }
+.ab-sitefoot .ab-bottom {
+    border-top: 1px solid rgba(244, 242, 238, .12);
+    margin-top: 24px;
+    padding-top: 14px;
+    font-size: .8rem;
+    color: #8f8c85;
+}
+
+/* ── Fixed mobile action bar (site-wide, from the footer template) ── */
+.ab-actionbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1030;
+    background: #fff;
+    border-top: 3px solid #ef7d25;
+    padding: 8px 12px;
+    display: flex;
+    gap: 8px;
+}
+.ab-actionbar .btn { flex: 1 1 0; font-size: .9rem; }
+@media (min-width: 992px) {
+    .ab-actionbar { display: none; }
+}
+@media (max-width: 991.98px) {
+    #wrapwrap { padding-bottom: 64px; }
+}

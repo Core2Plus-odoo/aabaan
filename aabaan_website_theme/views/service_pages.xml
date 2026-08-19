@@ -1,20 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Shared page scaffold: each service page calls this with its blocks. -->
-    <template id="service_page_style" name="Aabaan Service Page Style">
-        <style>
-            .ab-orange { color: #c94f16; }
-            .ab-svc-hero { background: linear-gradient(135deg, #ffffff 55%, rgba(239,125,37,.14)); padding: 44px 0 32px; }
-            .ab-card { border: 1px solid #e5e0d8; border-radius: 14px; padding: 20px; height: 100%; }
-            .ab-price-row { display: flex; justify-content: space-between; border-bottom: 1px solid #eee7dc; padding: 9px 0; font-size: .95rem; }
-            .ab-price-row b { color: #c94f16; white-space: nowrap; }
-            .ab-tick li { margin: 5px 0; }
-            .ab-btn-book { background: #ef7d25; color: #fff !important; font-weight: 800; border-radius: 10px; }
-            .ab-cta-band { background: #17171a; color: #f4f2ee; padding: 26px 0; }
-            .ab-cta-band .ab-o { color: #ef7d25; font-weight: 800; }
-        </style>
-    </template>
-
+    <!-- Pre-footer call-to-action band shared by all content pages. -->
     <template id="service_cta_band" name="Aabaan Service CTA Band">
         <section class="ab-cta-band">
             <div class="container d-flex flex-wrap align-items-center gap-3 justify-content-between">
@@ -31,7 +17,6 @@
     <template id="page_svc_pest" name="Pest Control Service">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <t t-call="aabaan_website_theme.service_page_style"/>
                 <section class="ab-svc-hero"><div class="container">
                     <h1 class="h3 fw-bold">Pest Control — <span class="ab-orange">homes &amp; businesses</span></h1>
                     <p class="text-muted col-lg-7 px-0">Cockroaches, ants, rodents and bed bugs treated with
@@ -65,13 +50,13 @@
         <field name="url">/services/pest-control</field>
         <field name="view_id" ref="page_svc_pest"/>
         <field name="is_published" eval="True"/>
+        <field name="website_meta_description">Municipality-approved pest control for homes and businesses in the UAE. Residential visits AED 200–320, Dubai LO 11 compliant AMCs for F&amp;B. Call 800 AABAN.</field>
     </record>
 
     <!-- ══ Water Tank ══ -->
     <template id="page_svc_tank" name="Water Tank Cleaning Service">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <t t-call="aabaan_website_theme.service_page_style"/>
                 <section class="ab-svc-hero"><div class="container">
                     <h1 class="h3 fw-bold">Water Tank <span class="ab-orange">Cleaning &amp; Disinfection</span></h1>
                     <p class="text-muted col-lg-7 px-0">Municipality-approved cleaning for roof and underground
@@ -105,13 +90,13 @@
         <field name="url">/services/water-tank</field>
         <field name="view_id" ref="page_svc_tank"/>
         <field name="is_published" eval="True"/>
+        <field name="website_meta_description">Water tank cleaning and disinfection from AED 0.35 per gallon, with a compliance certificate issued after every clean. Serving Ajman, Sharjah, Dubai and beyond.</field>
     </record>
 
     <!-- ══ Anti-Termite ══ -->
     <template id="page_svc_termite" name="Anti-Termite Service">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <t t-call="aabaan_website_theme.service_page_style"/>
                 <section class="ab-svc-hero"><div class="container">
                     <h1 class="h3 fw-bold">Anti-Termite Treatment — <span class="ab-orange">10-year warranty</span></h1>
                     <p class="text-muted col-lg-7 px-0">Pre-construction soil treatment and post-construction
@@ -145,13 +130,13 @@
         <field name="url">/services/anti-termite</field>
         <field name="view_id" ref="page_svc_termite"/>
         <field name="is_published" eval="True"/>
+        <field name="website_meta_description">Anti-termite treatment at AED 14.50–18.00 per m² with a 10-year written warranty. Pre- and post-construction, municipality-approved. Free plot surveys.</field>
     </record>
 
     <!-- ══ Deep Cleaning ══ -->
     <template id="page_svc_cleaning" name="Deep Cleaning Service">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <t t-call="aabaan_website_theme.service_page_style"/>
                 <section class="ab-svc-hero"><div class="container">
                     <h1 class="h3 fw-bold">Deep Cleaning — <span class="ab-orange">move-in ready</span></h1>
                     <p class="text-muted col-lg-7 px-0">One-off deep cleans for villas, apartments and offices —
@@ -184,5 +169,6 @@
         <field name="url">/services/deep-cleaning</field>
         <field name="view_id" ref="page_svc_cleaning"/>
         <field name="is_published" eval="True"/>
+        <field name="website_meta_description">Fixed-price deep cleaning for villas, apartments and offices — move-in/move-out, post-construction and intensive kitchen and bathroom cleans across the UAE.</field>
     </record>
 </odoo>

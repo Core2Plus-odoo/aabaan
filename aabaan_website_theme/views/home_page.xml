@@ -3,28 +3,6 @@
     <template id="home_v2" name="Aabaan Home (Booking-first)">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <style>
-                    .ab-orange { color: #c94f16; }
-                    .ab-hero { background: linear-gradient(135deg, #ffffff 55%, rgba(239,125,37,.14)); padding: 56px 0 40px; }
-                    .ab-hero h1 { font-weight: 800; max-width: 22ch; }
-                    .ab-chip { display: inline-block; border: 1px solid #e5e0d8; border-radius: 999px; padding: 4px 14px; margin: 3px; color: #6b675f; font-size: .85rem; text-decoration: none; }
-                    .ab-chip:hover { border-color: #ef7d25; color: #c94f16; }
-                    .ab-trust { border-top: 1px solid #eee7dc; border-bottom: 1px solid #eee7dc; padding: 12px 0; font-size: .85rem; color: #6b675f; }
-                    .ab-trust b { color: #17171a; }
-                    .ab-card { border: 1px solid #e5e0d8; border-radius: 14px; padding: 20px; height: 100%; transition: all .15s; }
-                    .ab-card:hover { border-color: #ef7d25; transform: translateY(-2px); box-shadow: 0 10px 30px rgba(23,23,26,.08); }
-                    .ab-card .ic { font-size: 1.8rem; }
-                    .ab-from b { color: #c94f16; }
-                    .ab-step-n { width: 34px; height: 34px; border-radius: 999px; background: #17171a; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; }
-                    .ab-amc { border-left: 4px solid #ef7d25; }
-                    .ab-sticky { position: sticky; bottom: 0; z-index: 100; background: #fff; border-top: 3px solid #ef7d25; padding: 10px 0; }
-                    .ab-btn-book { background: #ef7d25; color: #fff !important; font-weight: 800; border-radius: 10px; }
-                    .ab-btn-wa { background: #0a7d33; color: #fff !important; font-weight: 800; border-radius: 10px; }
-                    .ab-btn-call { background: #17171a; color: #fff !important; font-weight: 800; border-radius: 10px; }
-                    .ab-foot { background: #17171a; color: #c9c6bf; padding: 28px 0; font-size: .9rem; }
-                    .ab-foot b { color: #f4f2ee; }
-                    .ab-foot .ab-o { color: #ef7d25; font-weight: 700; }
-                </style>
 
                 <!-- Hero -->
                 <section class="ab-hero">
@@ -133,33 +111,15 @@
                     </div></div>
                 </section>
 
-                <!-- Footer strip -->
-                <section class="ab-foot">
-                    <div class="container d-flex flex-wrap gap-4 justify-content-between">
-                        <span><b>Aaban Classic Building Cleaning L.L.C.</b><br/>
-                            Trade Licence 109374 · TRN 104302919600003</span>
-                        <span><b>Call</b> <span class="ab-o">800 AABAN</span> (800 22226)<br/>
-                            055 859 8834 · 055 866 6530</span>
-                        <span><b>Email</b><br/>infoaabanservices@gmail.com</span>
-                    </div>
-                </section>
-
-                <!-- Sticky action bar -->
-                <div class="ab-sticky">
-                    <div class="container d-flex gap-2">
-                        <a href="/booking" class="btn ab-btn-book flex-fill">📅 Book online</a>
-                        <a href="https://wa.me/971558598834" class="btn ab-btn-wa flex-fill">WhatsApp</a>
-                        <a href="tel:80022226" class="btn ab-btn-call flex-fill">☎ 800 AABAN</a>
-                    </div>
-                </div>
             </div>
         </t>
     </template>
 
     <record id="page_home_v2" model="website.page">
-        <field name="name">Home (Booking-first)</field>
-        <field name="url">/home-v2</field>
+        <field name="name">Home</field>
+        <field name="url">/</field>
         <field name="view_id" ref="home_v2"/>
         <field name="is_published" eval="True"/>
+        <field name="website_meta_description">Municipality-approved pest control, water tank cleaning, anti-termite and deep cleaning across the UAE. Same-day response in Dubai. Call 800 AABAN.</field>
     </record>
 </odoo>
