@@ -14,6 +14,87 @@ SITE_MENUS = [
     ('Book a visit', '/booking', 60, []),
 ]
 
+# Full-width mega menu for the Services entry (native website.menu
+# mega-menu). Classes come from the theme SCSS asset; the content is
+# re-applied on every upgrade so it stays in sync with the pages.
+MEGA_MENU_HTML = """
+<div class="ab-mega">
+  <div class="container">
+    <div class="row g-4">
+      <div class="col-lg-8">
+        <span class="ab-kick">What we do</span>
+        <div class="row g-2">
+          <div class="col-sm-6">
+            <a href="/services/pest-control" class="ab-mega-item">
+              <span class="ic">🪳</span>
+              <span class="tx"><b>Pest Control — Home</b>
+              <small>Cockroaches, bed bugs, rodents · from AED 200/visit</small></span>
+            </a>
+          </div>
+          <div class="col-sm-6">
+            <a href="/services/pest-control" class="ab-mega-item">
+              <span class="ic">🏢</span>
+              <span class="tx"><b>Pest Control — Business</b>
+              <small>F&amp;B AMCs · Dubai LO 11 compliant · 2 visits/month</small></span>
+            </a>
+          </div>
+          <div class="col-sm-6">
+            <a href="/services/water-tank" class="ab-mega-item">
+              <span class="ic">💧</span>
+              <span class="tx"><b>Water Tank Cleaning</b>
+              <small>From AED 0.35/gallon · certificate issued</small></span>
+            </a>
+          </div>
+          <div class="col-sm-6">
+            <a href="/services/anti-termite" class="ab-mega-item">
+              <span class="ic">🐜</span>
+              <span class="tx"><b>Anti-Termite Treatment</b>
+              <small>AED 14.50–18/m² · 10-year written warranty</small></span>
+            </a>
+          </div>
+          <div class="col-sm-6">
+            <a href="/services/deep-cleaning" class="ab-mega-item">
+              <span class="ic">🧽</span>
+              <span class="tx"><b>Deep Cleaning</b>
+              <small>Move-in / move-out · fixed price up front</small></span>
+            </a>
+          </div>
+          <div class="col-sm-6">
+            <a href="tel:80022226" class="ab-mega-item">
+              <span class="ic">🚨</span>
+              <span class="tx"><b>Emergency Call-out</b>
+              <small>Same-day Dubai · 24–48h other emirates</small></span>
+            </a>
+          </div>
+        </div>
+        <div class="ab-mega-foot">
+          <a href="/services" class="ab-mega-all">All services →</a>
+          <span class="ab-mega-chip">✓ Municipality approved</span>
+          <span class="ab-mega-chip">✓ MOCCAE pesticides</span>
+          <span class="ab-mega-chip">✓ 10-year termite warranty</span>
+        </div>
+      </div>
+      <div class="col-lg-4">
+        <div class="ab-mega-rail">
+          <span class="ab-kick">Annual contracts</span>
+          <b class="d-block mb-1">One contract. Every visit handled.</b>
+          <ul>
+            <li>Yearly 12 / 4 / 2 visits, scheduled for you</li>
+            <li>Free follow-ups every 3 days until clear</li>
+            <li>Municipality reporting handled</li>
+          </ul>
+          <a href="/contactus" class="btn btn-sm ab-btn-book w-100 mb-2">Request an AMC proposal</a>
+          <div class="ab-mega-call">
+            Call <a href="tel:80022226"><span class="ab-o">800 AABAN</span></a> ·
+            <a href="https://wa.me/971558598834">WhatsApp</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+"""
+
 # Pages that must stay published even though this module does not own them:
 # the booking form the CTAs point at, the native contact page, and common
 # legal pages if the site has them.
@@ -89,11 +170,21 @@ def _apply_site_structure(env):
         if not root:
             continue
         ensured_ids = []
+        mega_ok = 'is_mega_menu' in Menu._fields
         for name, url, sequence, children in SITE_MENUS:
             parent = _ensure_menu(Menu, root, website, name, url, sequence)
             ensured_ids.append(parent.id)
-            for c_name, c_url, c_seq in children:
-                _ensure_menu(Menu, parent, website, c_name, c_url, c_seq)
+            if url == '/services' and mega_ok:
+                # Native mega menu replaces the plain dropdown; its child
+                # items are no longer rendered, so they are removed.
+                parent.child_id.unlink()
+                parent.write({
+                    'is_mega_menu': True,
+                    'mega_menu_content': MEGA_MENU_HTML,
+                })
+            else:
+                for c_name, c_url, c_seq in children:
+                    _ensure_menu(Menu, parent, website, c_name, c_url, c_seq)
         legacy = root.child_id.filtered(
             lambda m: m.id not in ensured_ids
             and (not m.website_id or m.website_id.id == website.id)

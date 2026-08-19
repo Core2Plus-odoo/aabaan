@@ -19,8 +19,12 @@ L.L.C., in the approved Urban Company / Justlife style.
 The switch-over parks any previous page at `/` to `/home-classic`
 (unpublished, never deleted), clears `website.homepage_url`, and makes each
 website's main menu exactly: Home, Services (dropdown), About us, FAQ,
-Contact, Book a visit. Legacy internal menu items are removed (external
-http/mailto/tel links are kept), and every legacy page is unpublished —
+Contact, Book a visit. Services renders as a native **full-width mega
+menu** — service tiles with rate-card prices, trust chips and a dark AMC
+rail with the contact CTA; its content is re-applied on every upgrade, so
+edit it in `MEGA_MENU_HTML` (`__init__.py`), not in the builder. Legacy
+internal menu items are removed (external http/mailto/tel links are
+kept), and every legacy page is unpublished —
 except the keep-list (`/booking`, `/contactus`, legal pages). Old pages
 stay in the website page manager and can be republished with one click.
 
