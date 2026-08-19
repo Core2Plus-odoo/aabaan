@@ -1,32 +1,45 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Website Theme',
-    'version': '19.0.1.2.0',
+    'version': '19.0.2.0.0',
     'post_init_hook': '_post_init_hook',
     'category': 'Website/Website',
-    'summary': 'Booking-first homepage in the approved Urban Company / Justlife style',
+    'summary': 'Complete booking-first website in the approved Urban Company / Justlife style',
     'description': """
-Implements the approved website redesign concept as a code-defined page:
+Code-defined website for Aaban Classic Building Cleaning L.L.C.:
 
-- New homepage at /home-v2 (the live homepage is untouched until the client
-  sets the new page as homepage in the website builder — one click,
-  reversible).
-- Booking-first layout: hero with quick-pick service chips, trust bar
-  (municipality approvals, MOCCAE pesticides, 10-year termite warranty, TRN),
-  service tiles with real rate-card prices, 3-step booking strip, AMC and
-  coverage panels, corrected contact details (800 AABAN, both mobiles,
-  infoaabanservices@gmail.com — no landline) and a sticky mobile action bar
-  (Book / WhatsApp / Call).
-- All content is editable afterwards in the website builder; CTAs point at
-  the existing /booking form (native website_crm).
+- The booking-first page is the homepage itself (served at /). The previous
+  homepage is parked, unpublished, at /home-classic — recoverable, never
+  deleted. Old /home-v2 links 301-redirect to /.
+- Full page set: /services overview, four service detail pages with
+  rate-card pricing, /about (facts from the licence and the contract master
+  sheet), /faq — plus the native /contactus form kept as the contact page.
+- Site-wide branded footer (replaces website.footer_custom) with licence,
+  TRN, service links and the corrected contact details (800 AABAN, both
+  mobiles, infoaabanservices@gmail.com — no landline), and a fixed mobile
+  action bar (Book / WhatsApp / Call) on every page.
+- One SCSS asset carries the whole look (brand ink #17171a, orange #ef7d25),
+  including navbar styling and the "Book a visit" menu entry as a button.
+- The install hook / migration completes each website's main menu
+  (Home, Services + dropdown, About us, FAQ, Contact, Book a visit) —
+  matching by URL, never touching client-added items.
 """,
     'author': 'C2P Consultants FZC LLC',
     'license': 'OPL-1',
     'depends': ['website', 'website_crm'],
     'data': [
+        'views/layout.xml',
         'views/home_page.xml',
         'views/service_pages.xml',
+        'views/services_index.xml',
+        'views/about_page.xml',
+        'views/faq_page.xml',
     ],
+    'assets': {
+        'web.assets_frontend': [
+            'aabaan_website_theme/static/src/scss/aabaan_theme.scss',
+        ],
+    },
     'installable': True,
     'application': False,
 }
