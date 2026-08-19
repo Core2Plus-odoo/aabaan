@@ -13,10 +13,16 @@ class TestCeoDashboard(TransactionCase):
                     'service_lines', 'emirates', 'industries', 'size_bands',
                     'renewals', 'renewal_months', 'visits',
                     'pipeline', 'ar', 'customers',
-                    'revenue_months', 'technicians', 'visit_emirates'):
+                    'revenue_months', 'technicians', 'visit_emirates',
+                    'collections_months', 'this_month', 'last_month',
+                    'top_customers'):
             self.assertIn(key, data)
         self.assertEqual(len(data['size_bands']), 5)
         self.assertEqual(len(data['revenue_months']), 12)
+        self.assertEqual(len(data['collections_months']), 12)
+        for period in (data['this_month'], data['last_month']):
+            for metric in ('new_book', 'invoiced', 'collected'):
+                self.assertIn(metric, period)
         self.assertIsInstance(data['technicians'], list)
         self.assertIsInstance(data['visit_emirates'], list)
         self.assertIsInstance(data['book']['gross'], (int, float))

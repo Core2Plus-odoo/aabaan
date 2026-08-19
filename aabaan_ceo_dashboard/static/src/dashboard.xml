@@ -12,7 +12,10 @@
                 </div>
                 <div class="right">
                     <div class="ttl">CEO Dashboard</div>
-                    <div class="asof" t-if="state.data">Live from database · <t t-out="state.data.as_of"/></div>
+                    <div class="asof" t-if="state.data">
+                        Live from database · <t t-out="state.data.as_of"/>
+                        <button class="rfr" t-on-click="() => this.refresh()" title="Reload all figures">⟳ Refresh</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -73,6 +76,73 @@
             </div>
 
             <div class="o_aabaan_dash_grid">
+                <!-- This month vs last month -->
+                <div class="card wide">
+                    <h2>This month — with last month beside it</h2>
+                    <div class="renew">
+                        <button class="rn" t-on-click="() => this.open(state.data.this_month.new_book)">
+                            <span class="k">New contracts signed</span>
+                            <span class="v"><t t-out="money(state.data.this_month.new_book.gross)"/></span>
+                            <span class="d"><t t-out="state.data.this_month.new_book.count"/> signed ·
+                                last month <t t-out="money(state.data.last_month.new_book.gross)"/>
+                                (<t t-out="state.data.last_month.new_book.count"/>)</span>
+                        </button>
+                        <button class="rn" t-on-click="() => this.open(state.data.this_month.invoiced)">
+                            <span class="k">Invoiced, net of VAT</span>
+                            <span class="v"><t t-out="money(state.data.this_month.invoiced.gross)"/></span>
+                            <span class="d"><t t-out="state.data.this_month.invoiced.count"/> invoices ·
+                                last month <t t-out="money(state.data.last_month.invoiced.gross)"/></span>
+                        </button>
+                        <button class="rn" t-on-click="() => this.open(state.data.this_month.collected)">
+                            <span class="k">Cash collected</span>
+                            <span class="v"><t t-out="money(state.data.this_month.collected.gross)"/></span>
+                            <span class="d"><t t-out="state.data.this_month.collected.count"/> payments ·
+                                last month <t t-out="money(state.data.last_month.collected.gross)"/></span>
+                        </button>
+                        <button class="rn" t-if="state.data.this_month.leads"
+                                t-on-click="() => this.open(state.data.this_month.leads)">
+                            <span class="k">New leads</span>
+                            <span class="v"><t t-out="state.data.this_month.leads.count"/></span>
+                            <span class="d">last month <t t-out="state.data.last_month.leads ? state.data.last_month.leads.count : 0"/></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Top customers -->
+                <div class="card">
+                    <h2>Top customers — share of the book</h2>
+                    <div t-if="!state.data.top_customers.length" class="empty">
+                        Populates with the first confirmed contracts.
+                    </div>
+                    <div class="bars">
+                        <button class="bar" t-foreach="state.data.top_customers" t-as="item" t-key="item.key"
+                                t-on-click="() => this.open(item)">
+                            <span class="lbl" t-out="item.label"/>
+                            <span class="track"><span class="fill s1" t-attf-style="width: {{ barWidth(state.data.top_customers, item) }}%"/></span>
+                            <span class="num"><t t-out="money(item.gross)"/> · <t t-out="item.share"/>%</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cash collected trend -->
+                <div class="card wide">
+                    <h2>Cash collected — last 12 months</h2>
+                    <div t-if="!state.data.collections_months.some(m => m.count)" class="empty">
+                        Populates as customer payments are registered.
+                    </div>
+                    <div class="months" t-else="">
+                        <button class="mcol" t-foreach="state.data.collections_months" t-as="item" t-key="item.key"
+                                t-on-click="() => this.open(item)"
+                                t-att-title="item.label + ': ' + money(item.gross) + ' / ' + item.count + ' payments'">
+                            <span class="mv" t-out="item.count ? fmt(item.gross) : ''"/>
+                            <span class="mtrack">
+                                <span class="mfill" t-attf-style="height: {{ monthHeight(state.data.collections_months, item) }}%"/>
+                            </span>
+                            <span class="ml" t-out="item.label"/>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Service lines -->
                 <div class="card">
                     <h2>Book by service line</h2>
