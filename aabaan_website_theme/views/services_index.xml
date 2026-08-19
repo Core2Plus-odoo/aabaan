@@ -3,9 +3,9 @@
     <template id="page_services_index" name="Services Overview">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <section class="ab-svc-hero"><div class="container">
+                <section class="ab-hero-dark ab-hero-sm"><div class="container">
                     <h1 class="h3 fw-bold">Our <span class="ab-orange">services</span></h1>
-                    <p class="text-muted col-lg-7 px-0">Every job is done by municipality-approved technicians,
+                    <p class="ab-sub col-lg-7 px-0">Every job is done by municipality-approved technicians,
                         priced from the signed rate card, and closed with a written service report.</p>
                 </div></section>
 

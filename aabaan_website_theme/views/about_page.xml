@@ -3,9 +3,9 @@
     <template id="page_about" name="About Aaban">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <section class="ab-svc-hero"><div class="container">
+                <section class="ab-hero-dark ab-hero-sm"><div class="container">
                     <h1 class="h3 fw-bold">About <span class="ab-orange">Aaban</span></h1>
-                    <p class="text-muted col-lg-7 px-0">Aaban Classic Building Cleaning L.L.C. is a
+                    <p class="ab-sub col-lg-7 px-0">Aaban Classic Building Cleaning L.L.C. is a
                         municipality-approved pest control and cleaning company headquartered in Ajman,
                         serving homes, buildings and businesses across five emirates.</p>
                 </div></section>
