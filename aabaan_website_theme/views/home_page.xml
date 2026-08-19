@@ -5,11 +5,11 @@
             <div id="wrap" class="oe_structure">
 
                 <!-- Hero -->
-                <section class="ab-hero">
+                <section class="ab-hero-dark">
                     <div class="container">
                         <h1 class="display-6">Pest-free, clean and certified —
                             <span class="ab-orange">booked in 60 seconds</span></h1>
-                        <p class="text-muted col-lg-7 px-0">Municipality-approved pest control,
+                        <p class="ab-sub col-lg-7 px-0">Municipality-approved pest control,
                             water-tank cleaning, anti-termite and deep cleaning. Same-day response
                             in Dubai. Trusted by businesses and homes across the UAE.</p>
                         <a href="/booking" class="btn btn-lg ab-btn-book px-4">Book a visit now</a>
@@ -37,6 +37,7 @@
                 <!-- Services -->
                 <section class="py-5">
                     <div class="container">
+                        <span class="ab-kick">Services</span>
                         <h2 class="h4 fw-bold mb-1">What do you need done?</h2>
                         <p class="text-muted mb-4">Fixed, upfront prices from the signed rate card — no surprises on site.</p>
                         <div class="row g-3">
@@ -71,6 +72,7 @@
                 <!-- 3 steps -->
                 <section class="py-5" style="background:#f6f4ef;">
                     <div class="container">
+                        <span class="ab-kick">How it works</span>
                         <h2 class="h4 fw-bold mb-4">Booked in three steps</h2>
                         <div class="row g-3">
                             <div class="col-md-4"><div class="ab-card bg-white">

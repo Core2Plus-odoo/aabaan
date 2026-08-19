@@ -3,9 +3,9 @@
     <template id="page_faq" name="FAQ">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <section class="ab-svc-hero"><div class="container">
+                <section class="ab-hero-dark ab-hero-sm"><div class="container">
                     <h1 class="h3 fw-bold">Frequently asked <span class="ab-orange">questions</span></h1>
-                    <p class="text-muted col-lg-7 px-0">The short answers. Anything else —
+                    <p class="ab-sub col-lg-7 px-0">The short answers. Anything else —
                         call <a href="tel:80022226" class="ab-orange fw-bold">800 AABAN</a> and ask.</p>
                 </div></section>
 

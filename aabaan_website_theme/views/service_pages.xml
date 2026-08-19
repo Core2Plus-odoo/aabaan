@@ -17,9 +17,10 @@
     <template id="page_svc_pest" name="Pest Control Service">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <section class="ab-svc-hero"><div class="container">
+                <section class="ab-hero-dark ab-hero-sm"><div class="container">
+                    <a href="/services" class="ab-back">← All services</a>
                     <h1 class="h3 fw-bold">Pest Control — <span class="ab-orange">homes &amp; businesses</span></h1>
-                    <p class="text-muted col-lg-7 px-0">Cockroaches, ants, rodents and bed bugs treated with
+                    <p class="ab-sub col-lg-7 px-0">Cockroaches, ants, rodents and bed bugs treated with
                         MOCCAE-approved pesticides, by municipality-approved technicians. Report after every visit.</p>
                     <a href="/booking" class="btn btn-lg ab-btn-book px-4">Book a visit</a>
                 </div></section>
@@ -57,9 +58,10 @@
     <template id="page_svc_tank" name="Water Tank Cleaning Service">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <section class="ab-svc-hero"><div class="container">
+                <section class="ab-hero-dark ab-hero-sm"><div class="container">
+                    <a href="/services" class="ab-back">← All services</a>
                     <h1 class="h3 fw-bold">Water Tank <span class="ab-orange">Cleaning &amp; Disinfection</span></h1>
-                    <p class="text-muted col-lg-7 px-0">Municipality-approved cleaning for roof and underground
+                    <p class="ab-sub col-lg-7 px-0">Municipality-approved cleaning for roof and underground
                         tanks — drained, scrubbed, disinfected, refilled, and certified.</p>
                     <a href="/booking" class="btn btn-lg ab-btn-book px-4">Book a clean</a>
                 </div></section>
@@ -97,9 +99,10 @@
     <template id="page_svc_termite" name="Anti-Termite Service">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <section class="ab-svc-hero"><div class="container">
+                <section class="ab-hero-dark ab-hero-sm"><div class="container">
+                    <a href="/services" class="ab-back">← All services</a>
                     <h1 class="h3 fw-bold">Anti-Termite Treatment — <span class="ab-orange">10-year warranty</span></h1>
-                    <p class="text-muted col-lg-7 px-0">Pre-construction soil treatment and post-construction
+                    <p class="ab-sub col-lg-7 px-0">Pre-construction soil treatment and post-construction
                         injection, per municipality-approved procedures, with a written warranty certificate.</p>
                     <a href="/contactus" class="btn btn-lg ab-btn-book px-4">Request a survey</a>
                 </div></section>
@@ -137,9 +140,10 @@
     <template id="page_svc_cleaning" name="Deep Cleaning Service">
         <t t-call="website.layout">
             <div id="wrap" class="oe_structure">
-                <section class="ab-svc-hero"><div class="container">
+                <section class="ab-hero-dark ab-hero-sm"><div class="container">
+                    <a href="/services" class="ab-back">← All services</a>
                     <h1 class="h3 fw-bold">Deep Cleaning — <span class="ab-orange">move-in ready</span></h1>
-                    <p class="text-muted col-lg-7 px-0">One-off deep cleans for villas, apartments and offices —
+                    <p class="ab-sub col-lg-7 px-0">One-off deep cleans for villas, apartments and offices —
                         room-by-room scope agreed up front, priced before we start.</p>
                     <a href="/booking" class="btn btn-lg ab-btn-book px-4">Get a price</a>
                 </div></section>

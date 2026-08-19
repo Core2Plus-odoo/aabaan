@@ -1,6 +1,7 @@
 /* Aabaan website theme — brand ink #17171a, orange #ef7d25.
    All .ab-* classes used by the code-defined pages live here so every page
-   shares one look and the templates stay markup-only. */
+   shares one look and the templates stay markup-only. The dark angular
+   hero echoes the letterhead: ink band + orange slash. */
 
 /* ── Brand basics ─────────────────────────────────────────────── */
 .ab-orange { color: #c94f16; }
@@ -27,54 +28,121 @@ header .navbar .nav-link[href="/booking"] {
     font-weight: 800;
 }
 
-/* ── Shared components ────────────────────────────────────────── */
-.ab-hero,
-.ab-svc-hero {
-    background: linear-gradient(135deg, #ffffff 55%, rgba(239, 125, 37, .14));
-    padding: 56px 0 40px;
+/* ── Dark angular hero (letterhead motif) ─────────────────────── */
+.ab-hero-dark {
+    position: relative;
+    overflow: hidden;
+    background: #17171a;
+    color: #f4f2ee;
+    padding: 64px 0 56px;
 }
-.ab-svc-hero { padding: 44px 0 32px; }
-.ab-hero h1 { font-weight: 800; max-width: 22ch; }
+.ab-hero-dark.ab-hero-sm { padding: 44px 0 36px; }
+.ab-hero-dark::before {          /* orange slash */
+    content: "";
+    position: absolute;
+    top: -10%;
+    bottom: -10%;
+    right: -90px;
+    width: 260px;
+    background: #ef7d25;
+    transform: skewX(-16deg);
+}
+.ab-hero-dark::after {           /* echo band left of the slash */
+    content: "";
+    position: absolute;
+    top: -10%;
+    bottom: -10%;
+    right: 190px;
+    width: 46px;
+    background: rgba(239, 125, 37, .22);
+    transform: skewX(-16deg);
+}
+.ab-hero-dark .container { position: relative; z-index: 2; }
+.ab-hero-dark h1 { font-weight: 800; max-width: 24ch; letter-spacing: -.01em; }
+.ab-hero-dark .ab-orange { color: #ef7d25; }
+.ab-sub { color: #b9b6ae; }
+.ab-back { color: #b9b6ae; font-size: .8rem; text-decoration: none; display: inline-block; margin-bottom: 10px; }
+.ab-back:hover { color: #ef7d25; }
+@media (max-width: 767.98px) {
+    .ab-hero-dark::before { right: -170px; }
+    .ab-hero-dark::after { display: none; }
+}
 
+/* Chips (on the dark hero) */
 .ab-chip {
     display: inline-block;
-    border: 1px solid #e5e0d8;
+    border: 1px solid rgba(244, 242, 238, .3);
     border-radius: 999px;
     padding: 4px 14px;
     margin: 3px;
-    color: #6b675f;
+    color: #e8e5df;
     font-size: .85rem;
     text-decoration: none;
 }
-.ab-chip:hover { border-color: #ef7d25; color: #c94f16; }
+.ab-chip:hover { border-color: #ef7d25; color: #ef7d25; }
 
-.ab-trust {
-    border-top: 1px solid #eee7dc;
-    border-bottom: 1px solid #eee7dc;
-    padding: 12px 0;
-    font-size: .85rem;
-    color: #6b675f;
+/* ── Section furniture ────────────────────────────────────────── */
+.ab-kick {
+    display: block;
+    font-size: .75rem;
+    font-weight: 800;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: #c94f16;
+    margin-bottom: 6px;
+}
+
+.ab-trust { background: #f6f4ef; padding: 16px 0; font-size: .85rem; color: #6b675f; }
+.ab-trust span {
+    background: #fff;
+    border: 1px solid #e5e0d8;
+    border-radius: 999px;
+    padding: 6px 14px;
 }
 .ab-trust b { color: #17171a; }
 
 .ab-card {
-    border: 1px solid #e5e0d8;
-    border-radius: 14px;
-    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid #eae5dc;
+    border-radius: 16px;
+    padding: 22px;
     height: 100%;
+    background: #fff;
     transition: all .15s;
+}
+a.ab-card::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 3px;
+    background: #ef7d25;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform .2s;
 }
 a.ab-card:hover {
     border-color: #ef7d25;
     transform: translateY(-2px);
     box-shadow: 0 10px 30px rgba(23, 23, 26, .08);
 }
-.ab-card .ic { font-size: 1.8rem; }
+a.ab-card:hover::after { transform: scaleX(1); }
+.ab-card .ic {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(239, 125, 37, .12);
+    border-radius: 12px;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
 .ab-from b { color: #c94f16; }
 
 .ab-step-n {
-    width: 34px;
-    height: 34px;
+    width: 36px;
+    height: 36px;
     border-radius: 999px;
     background: #17171a;
     color: #fff;
@@ -82,6 +150,7 @@ a.ab-card:hover {
     align-items: center;
     justify-content: center;
     font-weight: 800;
+    box-shadow: 0 0 0 3px rgba(239, 125, 37, .35);
 }
 
 .ab-amc { border-left: 4px solid #ef7d25; }
@@ -98,10 +167,27 @@ a.ab-card:hover {
 .ab-tick li { margin: 5px 0; }
 
 .ab-btn-book { background: #ef7d25; color: #fff !important; font-weight: 800; border-radius: 10px; }
+.ab-btn-book:hover { background: #c94f16; }
 .ab-btn-wa { background: #0a7d33; color: #fff !important; font-weight: 800; border-radius: 10px; }
 .ab-btn-call { background: #17171a; color: #fff !important; font-weight: 800; border-radius: 10px; }
 
-.ab-cta-band { background: #17171a; color: #f4f2ee; padding: 26px 0; }
+.ab-cta-band {
+    position: relative;
+    overflow: hidden;
+    background: #17171a;
+    color: #f4f2ee;
+    padding: 26px 0;
+}
+.ab-cta-band::before {
+    content: "";
+    position: absolute;
+    top: -10%; bottom: -10%;
+    right: -60px;
+    width: 180px;
+    background: rgba(239, 125, 37, .25);
+    transform: skewX(-16deg);
+}
+.ab-cta-band .container { position: relative; z-index: 2; }
 .ab-cta-band .ab-o { color: #ef7d25; font-weight: 800; }
 
 /* Stat strip (About page) */
@@ -117,15 +203,40 @@ a.ab-card:hover {
     margin-bottom: 10px;
     background: #fff;
 }
-.ab-faq summary { font-weight: 700; color: #17171a; cursor: pointer; }
+.ab-faq summary {
+    font-weight: 700;
+    color: #17171a;
+    cursor: pointer;
+    list-style: none;
+    position: relative;
+    padding-right: 26px;
+}
+.ab-faq summary::-webkit-details-marker { display: none; }
+.ab-faq summary::after {
+    content: "+";
+    position: absolute;
+    right: 0;
+    top: 0;
+    color: #ef7d25;
+    font-weight: 800;
+    font-size: 1.1rem;
+    line-height: 1.2;
+}
 .ab-faq details[open] { border-color: #ef7d25; }
+.ab-faq details[open] summary::after { content: "–"; }
 .ab-faq details p, .ab-faq details ul { margin: 10px 0 0; font-size: .92rem; color: #6b675f; }
 
 /* ── Site-wide footer ─────────────────────────────────────────── */
 /* The native wrapper (and its copyright strip) matches the dark band */
 #wrapwrap > footer, .o_footer { background: #17171a; color: #c9c6bf; }
 .o_footer_copyright { color: #8f8c85; }
-.ab-sitefoot { background: #17171a; color: #c9c6bf; padding: 36px 0 20px; font-size: .9rem; }
+.ab-sitefoot {
+    background: #17171a;
+    color: #c9c6bf;
+    border-top: 4px solid #ef7d25;
+    padding: 36px 0 20px;
+    font-size: .9rem;
+}
 .ab-sitefoot b, .ab-sitefoot h5 { color: #f4f2ee; }
 .ab-sitefoot h5 { font-size: .95rem; font-weight: 800; margin-bottom: 10px; }
 .ab-sitefoot a { color: #c9c6bf; text-decoration: none; }
