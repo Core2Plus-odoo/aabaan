@@ -1,6 +1,10 @@
 from odoo.tests import TransactionCase, tagged
 
-from odoo.addons.aabaan_website_theme import _apply_site_structure
+from odoo.addons.aabaan_website_theme import (
+    KEEP_PUBLISHED_URLS,
+    SITE_MENUS,
+    _apply_site_structure,
+)
 
 PAGES = [
     ('aabaan_website_theme.page_home_v2', '/'),
@@ -35,6 +39,34 @@ class TestWebsiteOverhaul(TransactionCase):
             self.assertFalse(
                 Website.search([]).filtered('homepage_url'),
                 "homepage_url must be cleared so / serves the page itself")
+
+    def test_top_menu_is_exactly_the_defined_set(self):
+        _apply_site_structure(self.env)
+        expected = {url for _, url, _, _ in SITE_MENUS}
+        for website in self.env['website'].search([]):
+            root = self.env['website.menu'].search(
+                [('parent_id', '=', False), ('website_id', '=', website.id)],
+                limit=1)
+            if not root:
+                continue
+            internal = root.child_id.filtered(
+                lambda m: not (m.url or '').startswith(
+                    ('http://', 'https://', 'mailto:', 'tel:', '#')))
+            self.assertEqual(set(internal.mapped('url')), expected)
+
+    def test_legacy_pages_unpublished(self):
+        _apply_site_structure(self.env)
+        ours = self.env['ir.model.data'].search([
+            ('module', '=', 'aabaan_website_theme'),
+            ('model', '=', 'website.page'),
+        ]).mapped('res_id')
+        strays = self.env['website.page'].search([
+            ('id', 'not in', ours),
+            ('url', 'not in', KEEP_PUBLISHED_URLS),
+            ('is_published', '=', True),
+        ])
+        self.assertFalse(
+            strays, f"legacy pages still published: {strays.mapped('url')}")
 
     def test_menus_present_and_idempotent(self):
         Menu = self.env['website.menu']
