@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Website Theme',
-    'version': '19.0.1.1.0',
+    'version': '19.0.1.2.0',
     'post_init_hook': '_post_init_hook',
     'category': 'Website/Website',
     'summary': 'Booking-first homepage in the approved Urban Company / Justlife style',
@@ -25,6 +25,7 @@ Implements the approved website redesign concept as a code-defined page:
     'depends': ['website', 'website_crm'],
     'data': [
         'views/home_page.xml',
+        'views/service_pages.xml',
     ],
     'installable': True,
     'application': False,
