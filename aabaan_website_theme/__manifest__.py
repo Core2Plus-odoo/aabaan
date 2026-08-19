@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Website Theme',
-    'version': '19.0.2.2.0',
+    'version': '19.0.2.3.0',
     'post_init_hook': '_post_init_hook',
     'category': 'Website/Website',
     'summary': 'Complete booking-first website in the approved Urban Company / Justlife style',
@@ -21,7 +21,8 @@ Code-defined website for Aaban Classic Building Cleaning L.L.C.:
 - One SCSS asset carries the whole look (brand ink #17171a, orange #ef7d25),
   including navbar styling and the "Book a visit" menu entry as a button.
 - The install hook / migration makes each website's main menu exactly:
-  Home, Services (dropdown), About us, FAQ, Contact, Book a visit.
+  Home, Services (full-width mega menu: service tiles with prices, trust
+  chips, AMC rail with contact CTA), About us, FAQ, Contact, Book a visit.
   Legacy internal menu items are removed (external links are kept) and
   all legacy pages are unpublished — recoverable from the page manager,
   never deleted.

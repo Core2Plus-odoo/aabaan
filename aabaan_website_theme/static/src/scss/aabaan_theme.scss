@@ -81,6 +81,85 @@ header .navbar .nav-link[href="/booking"] {
 }
 .ab-chip:hover { border-color: #ef7d25; color: #ef7d25; }
 
+/* ── Services mega menu (native website.menu mega-menu) ───────── */
+.o_mega_menu { border-top: 3px solid #ef7d25; }
+.ab-mega { padding: 26px 0 22px; }
+.ab-mega-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    text-decoration: none;
+    color: #17171a;
+    transition: all .15s;
+}
+.ab-mega-item:hover {
+    background: rgba(239, 125, 37, .07);
+    border-color: rgba(239, 125, 37, .35);
+    color: #17171a;
+}
+.ab-mega-item .ic {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(239, 125, 37, .12);
+    border-radius: 10px;
+    font-size: 1.2rem;
+}
+.ab-mega-item .tx b { display: block; font-size: .92rem; }
+.ab-mega-item .tx small { color: #6b675f; line-height: 1.3; display: block; }
+.ab-mega-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid #eee7dc;
+    margin-top: 14px;
+    padding-top: 12px;
+}
+.ab-mega-all { font-weight: 800; color: #c94f16 !important; text-decoration: none; }
+.ab-mega-all:hover { color: #ef7d25 !important; }
+.ab-mega-chip {
+    font-size: .75rem;
+    color: #6b675f;
+    background: #f6f4ef;
+    border-radius: 999px;
+    padding: 4px 12px;
+}
+.ab-mega-rail {
+    position: relative;
+    overflow: hidden;
+    background: #17171a;
+    color: #c9c6bf;
+    border-radius: 14px;
+    padding: 20px;
+    height: 100%;
+    font-size: .88rem;
+}
+.ab-mega-rail::before {
+    content: "";
+    position: absolute;
+    top: -10%; bottom: -10%;
+    right: -50px;
+    width: 110px;
+    background: rgba(239, 125, 37, .2);
+    transform: skewX(-16deg);
+}
+.ab-mega-rail > * { position: relative; z-index: 2; }
+.ab-mega-rail b { color: #f4f2ee; }
+.ab-mega-rail .ab-kick { color: #ef7d25; }
+.ab-mega-rail ul { padding-left: 18px; margin: 0 0 12px; }
+.ab-mega-rail li { margin: 3px 0; }
+.ab-mega-call a,
+.ab-mega-call a:visited { color: #c9c6bf !important; text-decoration: none; }
+.ab-mega-call a:hover { color: #ef7d25 !important; }
+.ab-mega-call .ab-o { color: #ef7d25 !important; font-weight: 800; }
+
 /* ── Section furniture ────────────────────────────────────────── */
 .ab-kick {
     display: block;

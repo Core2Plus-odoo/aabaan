@@ -68,6 +68,22 @@ class TestWebsiteOverhaul(TransactionCase):
         self.assertFalse(
             strays, f"legacy pages still published: {strays.mapped('url')}")
 
+    def test_services_menu_is_a_mega_menu(self):
+        Menu = self.env['website.menu']
+        if 'is_mega_menu' not in Menu._fields:
+            self.skipTest("no mega menu support on website.menu")
+        _apply_site_structure(self.env)
+        for website in self.env['website'].search([]):
+            services = Menu.search([
+                ('url', '=', '/services'),
+                ('website_id', '=', website.id),
+                ('parent_id', '!=', False),
+            ])
+            self.assertEqual(len(services), 1)
+            self.assertTrue(services.is_mega_menu)
+            self.assertIn('ab-mega', services.mega_menu_content or '')
+            self.assertFalse(services.child_id)
+
     def test_menus_present_and_idempotent(self):
         Menu = self.env['website.menu']
         _apply_site_structure(self.env)
