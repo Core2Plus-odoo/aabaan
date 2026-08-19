@@ -42,7 +42,8 @@ class TestWebsiteOverhaul(TransactionCase):
 
     def test_top_menu_is_exactly_the_defined_set(self):
         _apply_site_structure(self.env)
-        expected = {url for _, url, _, _ in SITE_MENUS}
+        # Names, not URLs: Odoo may rewrite a mega menu's URL to '#'.
+        expected = {name for name, _, _, _ in SITE_MENUS}
         for website in self.env['website'].search([]):
             root = self.env['website.menu'].search(
                 [('parent_id', '=', False), ('website_id', '=', website.id)],
@@ -51,8 +52,10 @@ class TestWebsiteOverhaul(TransactionCase):
                 continue
             internal = root.child_id.filtered(
                 lambda m: not (m.url or '').startswith(
-                    ('http://', 'https://', 'mailto:', 'tel:', '#')))
-            self.assertEqual(set(internal.mapped('url')), expected)
+                    ('http://', 'https://', 'mailto:', 'tel:')))
+            self.assertEqual(set(internal.mapped('name')), expected)
+            self.assertEqual(len(internal), len(SITE_MENUS),
+                             "no duplicate top-level menu items allowed")
 
     def test_legacy_pages_unpublished(self):
         _apply_site_structure(self.env)
@@ -75,7 +78,7 @@ class TestWebsiteOverhaul(TransactionCase):
         _apply_site_structure(self.env)
         for website in self.env['website'].search([]):
             services = Menu.search([
-                ('url', '=', '/services'),
+                ('name', '=', 'Services'),
                 ('website_id', '=', website.id),
                 ('parent_id', '!=', False),
             ])
@@ -91,7 +94,7 @@ class TestWebsiteOverhaul(TransactionCase):
             (website.id, url): Menu.search_count(
                 [('url', '=', url), ('website_id', '=', website.id)])
             for website in self.env['website'].search([])
-            for url in ['/services', '/about', '/faq', '/booking', '/contactus']
+            for url in ['/about', '/faq', '/booking', '/contactus']
         }
         for key, count in counts.items():
             self.assertGreaterEqual(count, 1, f"menu missing for {key}")

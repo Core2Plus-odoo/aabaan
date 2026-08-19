@@ -105,19 +105,37 @@ KEEP_PUBLISHED_URLS = [
 
 
 def _is_external(menu):
+    # '#' is NOT external: dropdown/mega-menu parents carry it, and treating
+    # it as external is what let duplicate "Services" items survive cleanup.
     url = menu.url or ''
-    return url.startswith(('http://', 'https://', 'mailto:', 'tel:', '#'))
+    return url.startswith(('http://', 'https://', 'mailto:', 'tel:'))
 
 
-def _ensure_menu(Menu, parent, website, name, url, sequence):
-    menu = Menu.search([('url', '=', url), ('parent_id', '=', parent.id),
-                        ('website_id', '=', website.id)], limit=1)
-    if menu:
-        menu.write({'name': name, 'sequence': sequence})
-    else:
-        menu = Menu.create({'name': name, 'url': url, 'parent_id': parent.id,
-                            'sequence': sequence, 'website_id': website.id})
-    return menu
+def _rebuild_menu(env, website, root):
+    """Wipe-and-rebuild: every internal item under the root is removed and
+    the defined set is recreated from scratch. No matching heuristics — the
+    end state is identical no matter what history the menu carries. Only
+    genuinely external links (http/mailto/tel) survive."""
+    Menu = env['website.menu']
+    stale = root.child_id.filtered(
+        lambda m: (not m.website_id or m.website_id.id == website.id)
+        and not _is_external(m))
+    if stale:
+        stale.unlink()
+    mega_ok = ('is_mega_menu' in Menu._fields
+               and 'mega_menu_content' in Menu._fields)
+    for name, url, sequence, children in SITE_MENUS:
+        vals = {'name': name, 'url': url, 'parent_id': root.id,
+                'sequence': sequence, 'website_id': website.id}
+        if url == '/services' and mega_ok:
+            vals.update(is_mega_menu=True, mega_menu_content=MEGA_MENU_HTML)
+            Menu.create(vals)
+        else:
+            parent = Menu.create(vals)
+            for c_name, c_url, c_seq in children:
+                Menu.create({'name': c_name, 'url': c_url,
+                             'parent_id': parent.id, 'sequence': c_seq,
+                             'website_id': website.id})
 
 
 def _retire_legacy_pages(env):
@@ -144,9 +162,9 @@ def _apply_site_structure(env):
     - the booking-first page is served at `/` (any previous homepage is
       parked, unpublished, at /home-classic — recoverable, never deleted);
     - the homepage pointer is cleared;
-    - the top menu becomes exactly the defined set: legacy internal items
-      (old Home/Services/Coverage/About/Contact) are removed so nothing is
-      duplicated — only external links (http/mailto/tel/#) are kept;
+    - the top menu is wiped and rebuilt to exactly the defined set — only
+      genuinely external links (http/mailto/tel) survive, so no history of
+      duplicates or old dropdowns can persist;
     - every legacy page is unpublished (see _retire_legacy_pages)."""
     Page = env['website.page']
     Menu = env['website.menu']
@@ -169,28 +187,7 @@ def _apply_site_structure(env):
             root = env.ref('website.main_menu', raise_if_not_found=False)
         if not root:
             continue
-        ensured_ids = []
-        mega_ok = 'is_mega_menu' in Menu._fields
-        for name, url, sequence, children in SITE_MENUS:
-            parent = _ensure_menu(Menu, root, website, name, url, sequence)
-            ensured_ids.append(parent.id)
-            if url == '/services' and mega_ok:
-                # Native mega menu replaces the plain dropdown; its child
-                # items are no longer rendered, so they are removed.
-                parent.child_id.unlink()
-                parent.write({
-                    'is_mega_menu': True,
-                    'mega_menu_content': MEGA_MENU_HTML,
-                })
-            else:
-                for c_name, c_url, c_seq in children:
-                    _ensure_menu(Menu, parent, website, c_name, c_url, c_seq)
-        legacy = root.child_id.filtered(
-            lambda m: m.id not in ensured_ids
-            and (not m.website_id or m.website_id.id == website.id)
-            and not _is_external(m))
-        if legacy:
-            legacy.unlink()
+        _rebuild_menu(env, website, root)
 
     _retire_legacy_pages(env)
 
