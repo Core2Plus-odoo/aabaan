@@ -227,9 +227,22 @@ a.ab-card:hover::after { transform: scaleX(1); }
 .ab-faq details p, .ab-faq details ul { margin: 10px 0 0; font-size: .92rem; color: #6b675f; }
 
 /* ── Site-wide footer ─────────────────────────────────────────── */
-/* The native wrapper (and its copyright strip) matches the dark band */
+/* The native wrapper (and its copyright strip) matches the dark band.
+   The old theme's purple link palette must not bleed into the footer,
+   so links are pinned — including :visited — with priority. */
 #wrapwrap > footer, .o_footer { background: #17171a; color: #c9c6bf; }
-.o_footer_copyright { color: #8f8c85; }
+#wrapwrap footer a,
+#wrapwrap footer a:visited { color: #c9c6bf !important; }
+#wrapwrap footer a:hover { color: #ef7d25 !important; }
+#wrapwrap footer .ab-o { color: #ef7d25 !important; }
+.o_footer_copyright,
+.o_footer_copyright span,
+.o_footer_copyright div,
+.o_footer_copyright li { color: #8f8c85; }
+
+/* Content links follow the brand, not the old theme's purple */
+#wrapwrap main a:not(.btn):not(.ab-card):not(.ab-chip):not(.nav-link) { color: #c94f16; }
+#wrapwrap main a:not(.btn):not(.ab-card):not(.ab-chip):not(.nav-link):hover { color: #ef7d25; }
 .ab-sitefoot {
     background: #17171a;
     color: #c9c6bf;

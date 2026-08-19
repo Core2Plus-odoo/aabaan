@@ -17,10 +17,12 @@ L.L.C., in the approved Urban Company / Justlife style.
 | Homepage switch-over + menu build (idempotent, shared by install hook and migration) | `__init__.py` |
 
 The switch-over parks any previous page at `/` to `/home-classic`
-(unpublished, never deleted), clears `website.homepage_url`, and completes
-each website's main menu — Home, Services (dropdown), About us, FAQ,
-Contact, Book a visit — matching existing items by URL so client-added
-menu entries are never touched.
+(unpublished, never deleted), clears `website.homepage_url`, and makes each
+website's main menu exactly: Home, Services (dropdown), About us, FAQ,
+Contact, Book a visit. Legacy internal menu items are removed (external
+http/mailto/tel links are kept), and every legacy page is unpublished —
+except the keep-list (`/booking`, `/contactus`, legal pages). Old pages
+stay in the website page manager and can be republished with one click.
 
 ## What is configuration (native Odoo, not this module)
 
