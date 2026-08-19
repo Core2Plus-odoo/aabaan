@@ -11,6 +11,8 @@ L.L.C., in the approved Urban Company / Justlife style.
 | `/services` overview | `views/services_index.xml` |
 | `/services/pest-control`, `/services/water-tank`, `/services/anti-termite`, `/services/deep-cleaning` | `views/service_pages.xml` |
 | `/about` (licence, approvals, numbers from the contract master sheet), `/faq` | `views/about_page.xml`, `views/faq_page.xml` |
+| `/booking` (branded visit-request form → CRM lead) + `/booking-thanks` | `views/booking_page.xml` |
+| `/contactus` beautification (branded hero + contact tiles over the native form) | `views/contact_page.xml` |
 | Site-wide footer (replaces `website.footer_custom`) + fixed mobile action bar | `views/layout.xml` |
 | 301 redirect `/home-v2 → /` (`website.rewrite`) | `views/layout.xml` |
 | All styling — brand ink `#17171a`, orange `#ef7d25`, navbar, buttons | `static/src/scss/aabaan_theme.scss` |

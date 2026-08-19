@@ -15,6 +15,8 @@ PAGES = [
     ('aabaan_website_theme.page_rec_svc_cleaning', '/services/deep-cleaning'),
     ('aabaan_website_theme.page_rec_about', '/about'),
     ('aabaan_website_theme.page_rec_faq', '/faq'),
+    ('aabaan_website_theme.page_rec_booking', '/booking'),
+    ('aabaan_website_theme.page_rec_booking_thanks', '/booking-thanks'),
 ]
 
 
@@ -70,6 +72,24 @@ class TestWebsiteOverhaul(TransactionCase):
         ])
         self.assertFalse(
             strays, f"legacy pages still published: {strays.mapped('url')}")
+
+    def test_no_page_shadows_a_module_page(self):
+        """A legacy page sharing a module page's URL would shadow it in
+        routing — the parking sweep must clear every clash."""
+        Page = self.env['website.page']
+        legacy = Page.create({
+            'name': 'Old booking', 'url': '/booking',
+            'view_id': self.env.ref('aabaan_website_theme.page_booking').id,
+            'is_published': True,
+        })
+        _apply_site_structure(self.env)
+        self.assertEqual(legacy.url, '/booking-classic')
+        self.assertFalse(legacy.is_published)
+        for _xmlid, url in PAGES:
+            ours = self.env.ref(_xmlid)
+            clashes = Page.search(
+                [('url', '=', url), ('id', '!=', ours.id)])
+            self.assertFalse(clashes, f"page still shadowing {url}")
 
     def test_services_menu_is_a_mega_menu(self):
         Menu = self.env['website.menu']

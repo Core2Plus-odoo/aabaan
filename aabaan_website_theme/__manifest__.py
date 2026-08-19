@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Website Theme',
-    'version': '19.0.2.4.0',
+    'version': '19.0.2.5.0',
     'post_init_hook': '_post_init_hook',
     'category': 'Website/Website',
     'summary': 'Complete booking-first website in the approved Urban Company / Justlife style',
@@ -37,6 +37,8 @@ Code-defined website for Aaban Classic Building Cleaning L.L.C.:
         'views/services_index.xml',
         'views/about_page.xml',
         'views/faq_page.xml',
+        'views/booking_page.xml',
+        'views/contact_page.xml',
     ],
     'assets': {
         'web.assets_frontend': [

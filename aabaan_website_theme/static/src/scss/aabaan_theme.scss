@@ -279,6 +279,68 @@ a.ab-card:hover::after { transform: scaleX(1); }
 .ab-cta-band .container { position: relative; z-index: 2; }
 .ab-cta-band .ab-o { color: #ef7d25; font-weight: 800; }
 
+/* ── Contact page ─────────────────────────────────────────────── */
+/* Hide the stock photo cover that follows the inserted branded hero */
+.ab-contact-hero + section { display: none; }
+.ab-ct {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    border: 1px solid rgba(244, 242, 238, .25);
+    border-radius: 14px;
+    padding: 16px;
+    height: 100%;
+    background: rgba(244, 242, 238, .05);
+    text-decoration: none;
+    color: #f4f2ee !important;
+    transition: all .15s;
+}
+.ab-ct:hover {
+    border-color: #ef7d25;
+    background: rgba(239, 125, 37, .12);
+    color: #fff !important;
+}
+.ab-ct .ic {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(239, 125, 37, .18);
+    border-radius: 12px;
+    font-size: 1.3rem;
+}
+.ab-ct b { display: block; color: #f4f2ee; }
+.ab-ct small { color: #b9b6ae; line-height: 1.35; }
+
+/* ── Forms (contact, booking — every website form) ────────────── */
+.s_website_form label,
+.s_website_form .s_website_form_label { font-weight: 600; color: #17171a; }
+.s_website_form .form-control,
+.s_website_form .form-select {
+    border: 1px solid #e5e0d8;
+    border-radius: 10px;
+    padding: 10px 14px;
+}
+.s_website_form .form-control:focus,
+.s_website_form .form-select:focus {
+    border-color: #ef7d25;
+    box-shadow: 0 0 0 .2rem rgba(239, 125, 37, .15);
+}
+.s_website_form .s_website_form_send,
+.s_website_form .btn-primary {
+    background: #ef7d25;
+    border-color: #ef7d25;
+    font-weight: 800;
+    border-radius: 10px;
+}
+.s_website_form .s_website_form_send:hover,
+.s_website_form .btn-primary:hover {
+    background: #c94f16;
+    border-color: #c94f16;
+}
+
 /* Stat strip (About page) */
 .ab-stat { text-align: center; }
 .ab-stat .n { font-size: 1.9rem; font-weight: 800; color: #c94f16; }
