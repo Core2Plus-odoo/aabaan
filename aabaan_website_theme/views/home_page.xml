@@ -62,23 +62,23 @@
                         <h2 class="h4 fw-bold mb-1">What do you need done?</h2>
                         <p class="text-muted mb-4">Fixed, upfront prices from the signed rate card — no surprises on site.</p>
                         <div class="row g-3">
-                            <div class="col-md-4 col-sm-6"><a href="/booking" class="d-block text-decoration-none text-reset ab-card">
+                            <div class="col-md-4 col-sm-6"><a href="/services/pest-control" class="d-block text-decoration-none text-reset ab-card">
                                 <div class="ic">🪳</div><h3 class="h6 fw-bold mb-1">Pest Control — Home</h3>
                                 <div class="ab-from small text-muted">1BR apartment <b>from AED 200</b>/visit</div>
                                 <div class="ab-orange fw-bold small mt-2">Book a visit →</div></a></div>
-                            <div class="col-md-4 col-sm-6"><a href="/booking" class="d-block text-decoration-none text-reset ab-card">
+                            <div class="col-md-4 col-sm-6"><a href="/services/pest-control" class="d-block text-decoration-none text-reset ab-card">
                                 <div class="ic">🏢</div><h3 class="h6 fw-bold mb-1">Pest Control — Business</h3>
                                 <div class="ab-from small text-muted">Restaurants &amp; F&amp;B — <b>LO 11 compliant</b>, 2 visits/month</div>
                                 <div class="ab-orange fw-bold small mt-2">Get AMC quote →</div></a></div>
-                            <div class="col-md-4 col-sm-6"><a href="/booking" class="d-block text-decoration-none text-reset ab-card">
+                            <div class="col-md-4 col-sm-6"><a href="/services/water-tank" class="d-block text-decoration-none text-reset ab-card">
                                 <div class="ic">💧</div><h3 class="h6 fw-bold mb-1">Water Tank Cleaning</h3>
                                 <div class="ab-from small text-muted">From <b>AED 0.35</b>/gallon · certificate issued</div>
                                 <div class="ab-orange fw-bold small mt-2">Book a clean →</div></a></div>
-                            <div class="col-md-4 col-sm-6"><a href="/booking" class="d-block text-decoration-none text-reset ab-card">
+                            <div class="col-md-4 col-sm-6"><a href="/services/anti-termite" class="d-block text-decoration-none text-reset ab-card">
                                 <div class="ic">🐜</div><h3 class="h6 fw-bold mb-1">Anti-Termite Treatment</h3>
                                 <div class="ab-from small text-muted"><b>AED 14.50–18</b>/m² · 10-year warranty</div>
                                 <div class="ab-orange fw-bold small mt-2">Request survey →</div></a></div>
-                            <div class="col-md-4 col-sm-6"><a href="/booking" class="d-block text-decoration-none text-reset ab-card">
+                            <div class="col-md-4 col-sm-6"><a href="/services/deep-cleaning" class="d-block text-decoration-none text-reset ab-card">
                                 <div class="ic">🧽</div><h3 class="h6 fw-bold mb-1">Deep Cleaning</h3>
                                 <div class="ab-from small text-muted">Room-by-room scope, one-off or move-in</div>
                                 <div class="ab-orange fw-bold small mt-2">Get a price →</div></a></div>
