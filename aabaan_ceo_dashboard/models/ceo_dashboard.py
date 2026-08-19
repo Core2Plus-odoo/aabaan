@@ -256,4 +256,63 @@ class AabaanCeoDashboard(models.AbstractModel):
                 [('customer_rank', '>', 0)]),
             'model': 'res.partner', 'domain': [('customer_rank', '>', 0)],
         }
+
+        # revenue trend — posted customer invoices net of VAT, by month
+        inv_base = [('move_type', 'in', ('out_invoice', 'out_refund')),
+                    ('state', '=', 'posted')]
+        trend_start = today.replace(day=1)
+        data['revenue_months'] = []
+        for offset in range(-11, 1):
+            m_from = trend_start + relativedelta(months=offset)
+            m_to = trend_start + relativedelta(months=offset + 1)
+            m_domain = inv_base + [
+                ('invoice_date', '>=', fields.Date.to_string(m_from)),
+                ('invoice_date', '<', fields.Date.to_string(m_to))]
+            m_total, m_cnt = self._sums(
+                'account.move', m_domain,
+                ['amount_untaxed_signed:sum', '__count'])
+            data['revenue_months'].append({
+                'key': m_from.strftime('%Y-%m'),
+                'label': m_from.strftime('%b'),
+                'gross': m_total, 'count': m_cnt,
+                'model': 'account.move', 'domain': m_domain,
+            })
+
+        # top technicians — completed visits (field ops stamps completion)
+        data['technicians'] = []
+        done_domain = fsm_domain + (
+            [('visit_completed_at', '!=', False)]
+            if 'visit_completed_at' in Task._fields
+            else [('stage_id.fold', '=', True)])
+        for user, cnt in Task._read_group(done_domain, ['user_ids'], ['__count']):
+            if not user:
+                continue
+            data['technicians'].append({
+                'key': str(user.id), 'label': user.name, 'count': cnt,
+                'open': Task.search_count(
+                    open_domain + [('user_ids', 'in', user.id)]),
+                'model': 'project.task',
+                'domain': done_domain + [('user_ids', 'in', user.id)],
+            })
+        data['technicians'].sort(key=lambda item: -item['count'])
+        data['technicians'] = data['technicians'][:8]
+
+        # visit workload by emirate (through the contract's emirate regime)
+        data['visit_emirates'] = []
+        if 'x_emirate_regime' in Sale._fields and 'sale_order_id' in Task._fields:
+            labels = self._selection_labels('sale.order', 'x_emirate_regime')
+            for value, label in labels.items():
+                domain = fsm_domain + [
+                    ('sale_order_id.x_emirate_regime', '=', value)]
+                cnt = Task.search_count(domain)
+                if not cnt:
+                    continue
+                data['visit_emirates'].append({
+                    'key': str(value), 'label': label, 'count': cnt,
+                    'open': Task.search_count(
+                        open_domain
+                        + [('sale_order_id.x_emirate_regime', '=', value)]),
+                    'model': 'project.task', 'domain': domain,
+                })
+            data['visit_emirates'].sort(key=lambda item: -item['count'])
         return data

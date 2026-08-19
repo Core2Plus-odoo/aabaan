@@ -163,6 +163,58 @@
                     </div>
                 </div>
 
+                <!-- Revenue trend -->
+                <div class="card wide">
+                    <h2>Invoiced revenue — last 12 months</h2>
+                    <div t-if="!state.data.revenue_months.some(m => m.count)" class="empty">
+                        Populates as customer invoices are posted. Net of VAT; credit notes deduct.
+                    </div>
+                    <div class="months" t-else="">
+                        <button class="mcol" t-foreach="state.data.revenue_months" t-as="item" t-key="item.key"
+                                t-on-click="() => this.open(item)"
+                                t-att-title="item.label + ': ' + money(item.gross) + ' / ' + item.count + ' invoices'">
+                            <span class="mv" t-out="item.count ? fmt(item.gross) : ''"/>
+                            <span class="mtrack">
+                                <span class="mfill" t-attf-style="height: {{ monthHeight(state.data.revenue_months, item) }}%"/>
+                            </span>
+                            <span class="ml" t-out="item.label"/>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Top technicians -->
+                <div class="card">
+                    <h2>Top technicians — visits completed</h2>
+                    <div t-if="!state.data.technicians.length" class="empty">
+                        Populates once technicians are assigned and complete visits
+                        (Start / Complete buttons on the visit).
+                    </div>
+                    <div class="bars">
+                        <button class="bar" t-foreach="state.data.technicians" t-as="item" t-key="item.key"
+                                t-on-click="() => this.open(item)">
+                            <span class="lbl" t-out="item.label"/>
+                            <span class="track"><span class="fill s1" t-attf-style="width: {{ barCount(state.data.technicians, item) }}%"/></span>
+                            <span class="num"><t t-out="item.count"/> done · <t t-out="item.open"/> open</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Jobs by emirate -->
+                <div class="card">
+                    <h2>Visit workload by emirate</h2>
+                    <div t-if="!state.data.visit_emirates.length" class="empty">
+                        Populates once visits exist for contracts carrying an emirate regime.
+                    </div>
+                    <div class="bars">
+                        <button class="bar" t-foreach="state.data.visit_emirates" t-as="item" t-key="item.key"
+                                t-on-click="() => this.open(item)">
+                            <span class="lbl" t-out="item.label"/>
+                            <span class="track"><span class="fill s1" t-attf-style="width: {{ barCount(state.data.visit_emirates, item) }}%"/></span>
+                            <span class="num"><t t-out="item.count"/> visits · <t t-out="item.open"/> open</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Visits -->
                 <div class="card wide">
                     <h2>Field service</h2>

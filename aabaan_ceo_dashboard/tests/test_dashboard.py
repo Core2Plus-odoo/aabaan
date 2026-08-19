@@ -12,9 +12,13 @@ class TestCeoDashboard(TransactionCase):
         for key in ('company', 'currency', 'as_of', 'book', 'quotes',
                     'service_lines', 'emirates', 'industries', 'size_bands',
                     'renewals', 'renewal_months', 'visits',
-                    'pipeline', 'ar', 'customers'):
+                    'pipeline', 'ar', 'customers',
+                    'revenue_months', 'technicians', 'visit_emirates'):
             self.assertIn(key, data)
         self.assertEqual(len(data['size_bands']), 5)
+        self.assertEqual(len(data['revenue_months']), 12)
+        self.assertIsInstance(data['technicians'], list)
+        self.assertIsInstance(data['visit_emirates'], list)
         self.assertIsInstance(data['book']['gross'], (int, float))
         self.assertIsInstance(data['book']['count'], int)
         self.assertIsInstance(data['service_lines'], list)
