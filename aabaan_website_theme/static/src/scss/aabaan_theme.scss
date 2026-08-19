@@ -196,10 +196,14 @@ header .dropdown-menu { background: #fff; }
     border: 1px solid #eae5dc;
     border-radius: 16px;
     padding: 22px;
-    height: 100%;
     background: #fff;
     transition: all .15s;
 }
+/* Full-height only where one card fills one column (tile grids). A column
+   stacking several cards must NOT stretch each to the column height —
+   that made the booking sidebar overflow onto the footer. */
+a.ab-card,
+.ab-card:only-child { height: 100%; }
 a.ab-card::after {
     content: "";
     position: absolute;
