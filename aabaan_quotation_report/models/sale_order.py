@@ -1,9 +1,43 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
+import re
+
+from markupsafe import Markup
+
 from odoo import models
 
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
+
+    def _aabaan_note_html(self):
+        """The order's terms (articles), cleaned for print: the editor's
+        fill-in placeholder chips (dashed border, pencil icon) become bold
+        underlined text, so an unfilled placeholder reads as a blank to
+        complete instead of an editing artefact."""
+        self.ensure_one()
+        html = str(self.note or '')
+        if not html.strip():
+            return ''
+        html = html.replace('✎', '').replace('&#9998;', '')
+
+        def clean_style(match):
+            style = match.group(1)
+            if 'dashed' in style:
+                return ('style="font-weight: bold; padding: 0 3px; '
+                        'border-bottom: 1px solid #1A1A1C;"')
+            return match.group(0)
+
+        html = re.sub(r'style="([^"]*)"', clean_style, html)
+        return Markup(html)
+
+    def _aabaan_line_desc(self, line):
+        """Line description without the internal product code prefix —
+        '[AAB-CLN-DEEP-2BR] Deep Cleaning — 2BR' prints as the name only."""
+        name = (line.name or '').strip()
+        code = line.product_id.default_code
+        if code and name.startswith('[%s]' % code):
+            name = name[len(code) + 2:].lstrip()
+        return name
 
     def _aabaan_selection_display(self, fname):
         """Display label of a (possibly manual/Studio) field for report
