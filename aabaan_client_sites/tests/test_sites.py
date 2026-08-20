@@ -47,3 +47,20 @@ class TestClientSites(TransactionCase):
         if move_fields.get('partner_shipping_id'):
             self.assertEqual(
                 move_fields['partner_shipping_id']['string'], 'Site Address')
+
+    def test_studio_site_field_gets_domain(self):
+        from odoo.addons.aabaan_client_sites import (
+            SITE_DOMAIN, _configure_studio_site_fields)
+        model = self.env['ir.model']._get('sale.order')
+        field = self.env['ir.model.fields'].create({
+            'model_id': model.id, 'name': 'x_test_site_premises',
+            'ttype': 'many2one', 'relation': 'res.partner',
+            'field_description': 'Site / Premises (test)',
+            'state': 'manual',
+        })
+        _configure_studio_site_fields(self.env)
+        self.assertEqual(field.domain, SITE_DOMAIN)
+        # a deliberate configuration is never overwritten
+        field.domain = "[('is_company', '=', False)]"
+        _configure_studio_site_fields(self.env)
+        self.assertEqual(field.domain, "[('is_company', '=', False)]")
