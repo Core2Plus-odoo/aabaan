@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Contract Cockpit',
-    'version': '19.0.1.1.0',
+    'version': '19.0.1.2.0',
     'category': 'Sales/Sales',
     'summary': 'Contract command view: term, delivery, money and health KPIs on every confirmed contract',
     'description': """

@@ -58,8 +58,46 @@ def _safe_put(model, vals, fname, value):
     vals[fname] = value
 
 
+# A contract can cover several services at once (e.g. pest control AND
+# water tank cleaning). Detection is per order line, first match wins per
+# line, so "water tank cleaning" is a tank line, not a cleaning line.
+SERVICE_NAMES = [
+    ('pest', 'Pest Control'),
+    ('tank', 'Water Tank Cleaning'),
+    ('termite', 'Anti-Termite Treatment'),
+    ('paint', 'Paint Service'),
+    ('clean', 'Cleaning Service'),
+]
+
+
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
+
+    def aabaan_service_names(self):
+        """All services this contract covers, in line order, derived
+        dynamically from the order lines; falls back to the manual
+        x_service_line label when the lines name no known service."""
+        self.ensure_one()
+        found = []
+        for line in self.order_line:
+            if line.display_type:
+                continue
+            text = ' '.join(filter(None, [
+                line.name, line.product_id.name])).casefold()
+            for needle, label in SERVICE_NAMES:
+                if needle in text:
+                    if label not in found:
+                        found.append(label)
+                    break
+        if not found:
+            fname = 'x_service_line'
+            if fname in self._fields and self[fname]:
+                info = self.fields_get([fname], ['selection']).get(fname) or {}
+                label = dict(info.get('selection') or {}).get(
+                    self[fname], self[fname])
+                if label:
+                    found.append(str(label))
+        return found
 
     is_fnb_premises = fields.Boolean(
         string="F&B Premises (Dubai LO 11)",

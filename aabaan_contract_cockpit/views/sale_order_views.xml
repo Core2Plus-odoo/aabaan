@@ -28,6 +28,15 @@
                             <field name="cockpit_paid"/>
                             <field name="cockpit_outstanding"/>
                         </group>
+                        <group string="Agreement" name="ck_agreement">
+                            <field name="cockpit_services"/>
+                            <field name="cockpit_agreement_on_file"/>
+                        </group>
+                        <group string="Call-out Entitlement" name="ck_entitlement">
+                            <field name="cockpit_unscheduled_used"/>
+                            <field name="cockpit_unscheduled_over"/>
+                            <field name="cockpit_entitlement_note"/>
+                        </group>
                     </group>
                 </page>
             </xpath>
@@ -38,9 +47,12 @@
         <field name="name">sale.order.list.aabaan.cockpit</field>
         <field name="model">sale.order</field>
         <field name="arch" type="xml">
-            <list create="0">
+            <list create="0" decoration-danger="cockpit_unscheduled_over &gt; 0">
                 <field name="name"/>
                 <field name="partner_id"/>
+                <field name="cockpit_services" optional="show"/>
+                <field name="cockpit_agreement_on_file" optional="hide"/>
+                <field name="cockpit_unscheduled_over" optional="show"/>
                 <field name="amount_total" sum="Total"/>
                 <field name="cockpit_invoiced"/>
                 <field name="cockpit_outstanding"/>
