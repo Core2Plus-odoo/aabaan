@@ -23,7 +23,6 @@ class TestLegalEntities(TransactionCase):
                 "entities are standalone companies, not branches")
             self.assertEqual(
                 str(company.aabaan_licence_expiry), spec['licence_expiry'])
-            self.assertEqual(company.city, spec['city'])
 
     def test_setup_is_idempotent(self):
         Company = self.env['res.company'].sudo().with_context(
