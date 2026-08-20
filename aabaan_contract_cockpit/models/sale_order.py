@@ -37,6 +37,23 @@ class SaleOrder(models.Model):
         string="Health (0-10)", compute='_compute_cockpit', digits=(3, 1))
     cockpit_health_note = fields.Char(
         string="Health Basis", compute='_compute_cockpit')
+    cockpit_services = fields.Char(
+        string="Services Covered", compute='_compute_cockpit',
+        help="All services on this contract, derived dynamically from its "
+             "lines — a contract can cover several at once.")
+    cockpit_agreement_on_file = fields.Boolean(
+        string="Signed Agreement on File", compute='_compute_cockpit',
+        help="A document is attached to the contract, or it was signed "
+             "online through the portal.")
+    cockpit_unscheduled_used = fields.Integer(
+        string="Unscheduled Visits Used", compute='_compute_cockpit',
+        help="Follow-up and complaint visits — unbilled work.")
+    cockpit_unscheduled_over = fields.Integer(
+        string="Chargeable Call-outs", compute='_compute_cockpit',
+        help="Unscheduled visits beyond the contract's free entitlement "
+             "(2 per period outside Dubai, per Article 5).")
+    cockpit_entitlement_note = fields.Char(
+        string="Call-out Entitlement", compute='_compute_cockpit')
 
     def _compute_cockpit(self):
         Task = self.env['project.task']
@@ -44,15 +61,39 @@ class SaleOrder(models.Model):
         now = fields.Datetime.now()
         has_planned = 'planned_date_begin' in Task._fields
 
+        # unscheduled (unbilled) visit types, resolved once at runtime
+        unsched_keys = ()
+        if 'x_visit_type' in Task._fields:
+            info = Task.fields_get(
+                ['x_visit_type'], ['selection']).get('x_visit_type') or {}
+            unsched_keys = tuple(
+                key for key, label in (info.get('selection') or [])
+                if any(hint in f"{key} {label}".casefold()
+                       for hint in ('follow', 'complaint')))
+
+        # attachments batched for the whole recordset
+        att_counts = {}
+        real_ids = [oid for oid in self.ids if oid]
+        if real_ids:
+            for res_id, count in self.env['ir.attachment']._read_group(
+                    [('res_model', '=', 'sale.order'),
+                     ('res_id', 'in', real_ids)],
+                    ['res_id'], ['__count']):
+                att_counts[res_id] = count
+
         for order in self:
             # --- delivery, from the generated Field Service visits ---
-            total = done = overdue = escalated = 0
+            total = done = overdue = escalated = unscheduled = 0
             due_count = due_done = 0
             if order.id:
                 tasks = Task.search([
                     ('sale_order_id', '=', order.id),
                     ('project_id.is_fsm', '=', True)])
                 total = len(tasks)
+                if unsched_keys:
+                    unscheduled = sum(
+                        1 for task in tasks
+                        if task['x_visit_type'] in unsched_keys)
                 for task in tasks:
                     stage = (task.stage_id.name or '').casefold()
                     is_done = bool(task.visit_completed_at) or any(
@@ -120,3 +161,36 @@ class SaleOrder(models.Model):
             else:
                 order.cockpit_health = 0.0
                 order.cockpit_health_note = "No delivery or billing activity yet"
+
+            # --- agreement & call-out entitlement (multi-service aware) ---
+            order.cockpit_services = " + ".join(order.aabaan_service_names())
+            signed_online = ('signature' in order._fields
+                             and bool(order['signature']))
+            order.cockpit_agreement_on_file = bool(
+                att_counts.get(order.id)) or signed_online
+            order.cockpit_unscheduled_used = unscheduled
+
+            emirate = ''
+            if 'x_emirate_regime' in order._fields and order['x_emirate_regime']:
+                e_info = order.fields_get(
+                    ['x_emirate_regime'], ['selection']).get(
+                    'x_emirate_regime') or {}
+                emirate = str(dict(e_info.get('selection') or {}).get(
+                    order['x_emirate_regime'], order['x_emirate_regime']))
+            if 'dubai' in emirate.casefold():
+                order.cockpit_unscheduled_over = 0
+                order.cockpit_entitlement_note = (
+                    "Dubai — unlimited free call-outs (LO 11); %d used"
+                    % unscheduled)
+            elif emirate:
+                over = max(0, unscheduled - 2)
+                order.cockpit_unscheduled_over = over
+                note = ("%s — 2 free unscheduled visits per period (Art. 5); "
+                        "%d used" % (emirate, unscheduled))
+                if over:
+                    note += ", %d chargeable" % over
+                order.cockpit_entitlement_note = note
+            else:
+                order.cockpit_unscheduled_over = 0
+                order.cockpit_entitlement_note = (
+                    "Set the contract's emirate to track call-out entitlement")

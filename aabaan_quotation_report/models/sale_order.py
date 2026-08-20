@@ -26,9 +26,15 @@ class SaleOrder(models.Model):
         'PEST CONTROL AMC - VILLA 12, AL RASHIDIYA 2, AJMAN'."""
         self.ensure_one()
         parts = []
-        service = self._aabaan_selection_display('x_service_line')
-        if service:
-            parts.append(service)
+        # A contract can cover several services (e.g. pest control AND
+        # water tank cleaning) — name all of them, dynamically.
+        if hasattr(self, 'aabaan_service_names'):
+            services = self.aabaan_service_names()
+        else:
+            single = self._aabaan_selection_display('x_service_line')
+            services = [single] if single else []
+        if services:
+            parts.append(" + ".join(services))
         site = self._aabaan_selection_display('x_site_address')
         if site:
             parts.append(site)
