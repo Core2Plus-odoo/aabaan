@@ -39,6 +39,47 @@
                         </group>
                     </group>
                 </page>
+                <page string="Invoices" name="aabaan_invoices"
+                      invisible="state != 'sale'">
+                    <field name="invoice_status" invisible="1"/>
+                    <group>
+                        <group string="Billing Position" name="ck_inv_totals">
+                            <field name="cockpit_invoiced"/>
+                            <field name="cockpit_paid"/>
+                            <field name="cockpit_outstanding"/>
+                        </group>
+                        <group string="Bill More" name="ck_inv_actions">
+                            <div class="o_td_label" colspan="2">
+                                <button name="%(sale.action_view_sale_advance_payment_inv)d"
+                                        type="action" string="Create Invoice"
+                                        class="btn btn-primary"
+                                        invisible="invoice_status != 'to invoice'"/>
+                                <div class="text-muted" invisible="invoice_status == 'to invoice'">
+                                    Nothing left to invoice on this order right now.
+                                    For recurring AMC billing, set a Recurring Plan on the
+                                    order (Subscriptions) so this same order re-invoices
+                                    every period.
+                                </div>
+                            </div>
+                        </group>
+                    </group>
+                    <field name="invoice_ids" readonly="1">
+                        <list decoration-danger="payment_state == 'not_paid'"
+                              decoration-success="payment_state in ('paid', 'in_payment')">
+                            <field name="name"/>
+                            <field name="invoice_date"/>
+                            <field name="invoice_date_due" optional="show"/>
+                            <field name="amount_total" sum="Total"/>
+                            <field name="amount_residual" sum="Due"/>
+                            <field name="payment_state" widget="badge"
+                                   decoration-success="payment_state in ('paid', 'in_payment')"
+                                   decoration-danger="payment_state == 'not_paid'"
+                                   decoration-warning="payment_state == 'partial'"/>
+                            <field name="state" optional="show"/>
+                            <field name="currency_id" column_invisible="1"/>
+                        </list>
+                    </field>
+                </page>
             </xpath>
         </field>
     </record>
