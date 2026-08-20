@@ -55,3 +55,20 @@ class TestLegalEntities(TransactionCase):
                 [('res_model', '=', 'res.partner'),
                  ('res_id', '=', main.partner_id.id)]),
             count, "no duplicate renewal activities")
+
+    def test_branch_shell_is_retired_and_replaced(self):
+        Company = self.env['res.company'].sudo()
+        main = self.env.ref('base.main_company')
+        dubai = self._company_by_registry('989256')
+        # simulate the production situation: a branch shell in the way
+        dubai.with_context(active_test=False).write(
+            {'company_registry': False, 'active': False,
+             'name': 'gone-away', 'city': False})
+        shell = Company.create({'name': 'Dubai', 'parent_id': main.id})
+        _setup_entities(self.env)
+        shell.invalidate_recordset()
+        self.assertFalse(shell.active, "branch shell must be archived")
+        replacement = self._company_by_registry('989256')
+        self.assertTrue(replacement)
+        self.assertTrue(replacement.active)
+        self.assertFalse(replacement.parent_id)
