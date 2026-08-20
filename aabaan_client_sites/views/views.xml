@@ -10,6 +10,12 @@
             <xpath expr="//field[@name='street2']" position="after">
                 <field name="aabaan_area" placeholder="Area / District"/>
             </xpath>
+            <!-- The child-address popup (Contacts tab) uses its own embedded
+                 form — the area must be there too, it's where sites are made. -->
+            <xpath expr="//field[@name='child_ids']/form//field[@name='street2']"
+                   position="after">
+                <field name="aabaan_area" placeholder="Area / District"/>
+            </xpath>
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button name="action_view_locations" type="object"
                         class="oe_stat_button" icon="fa-map-marker"
