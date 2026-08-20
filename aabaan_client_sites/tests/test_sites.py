@@ -38,15 +38,16 @@ class TestClientSites(TransactionCase):
         self.assertEqual(order.aabaan_site_area, 'Al Rashidiya 2')
 
     def test_site_address_relabel(self):
+        # Studio may override the label on a live database — accept any
+        # site-flavoured label, reject only the old "Delivery Address".
         order_fields = self.env['sale.order'].fields_get(
             ['partner_shipping_id'], ['string'])
-        self.assertEqual(
-            order_fields['partner_shipping_id']['string'], 'Site Address')
+        self.assertIn('Site', order_fields['partner_shipping_id']['string'])
         move_fields = self.env['account.move'].fields_get(
             ['partner_shipping_id'], ['string'])
         if move_fields.get('partner_shipping_id'):
-            self.assertEqual(
-                move_fields['partner_shipping_id']['string'], 'Site Address')
+            self.assertIn(
+                'Site', move_fields['partner_shipping_id']['string'])
 
     def test_studio_site_field_gets_domain(self):
         from odoo.addons.aabaan_client_sites import (
