@@ -58,11 +58,29 @@ def _setup_entities(env):
         [('id', '!=', main.id if main else False)])
 
     def match(hints):
-        for company in everyone:
-            haystack = f"{company.name} {company.city or ''}".casefold()
-            if any(hint in haystack for hint in hints):
-                return company
-        return Company
+        candidates = [
+            company for company in everyone
+            if any(hint in f"{company.name} {company.city or ''}".casefold()
+                   for hint in hints)]
+        # a standalone match wins; a branch shell is only a fallback
+        standalone = [c for c in candidates if not c.parent_id]
+        return (standalone or candidates or [Company])[0]
+
+    def retire_branch(company):
+        """Odoo forbids detaching a branch ("The company hierarchy cannot
+        be changed"), so an empty branch shell is archived and renamed out
+        of the way instead of converted."""
+        try:
+            users = env['res.users'].sudo().search(
+                [('company_ids', 'in', company.id)])
+            users.write({'company_ids': [(3, company.id)]})
+            company.write({'active': False,
+                           'name': '%s (closed branch)' % company.name})
+            _logger.info("Aabaan entities: retired branch shell %s",
+                         company.name)
+        except Exception:
+            _logger.exception("Aabaan entities: could not retire branch %s",
+                              company.name)
 
     def state_for(hint):
         if not country:
@@ -74,16 +92,16 @@ def _setup_entities(env):
     entities = env['res.company']
     for spec in ENTITIES:
         company = main if spec.get('main') else match(spec['hints'])
+        if not spec.get('main') and company and company.parent_id:
+            retire_branch(company)
+            company = Company
         vals = {}
         if not company:
-            vals = {'name': spec['name']}
+            create_vals = {'name': spec['name']}
             if country:
-                vals['country_id'] = country.id
-            company = Company.create(vals)
-            vals = {}
+                create_vals['country_id'] = country.id
+            company = Company.create(create_vals)
         if not spec.get('main'):
-            if company.parent_id:
-                vals['parent_id'] = False
             if company.name != spec['name']:
                 vals['name'] = spec['name']
             if not company.active:
