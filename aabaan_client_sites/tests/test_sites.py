@@ -36,3 +36,14 @@ class TestClientSites(TransactionCase):
                                    'product_uom_qty': 1})],
         })
         self.assertEqual(order.aabaan_site_area, 'Al Rashidiya 2')
+
+    def test_site_address_relabel(self):
+        order_fields = self.env['sale.order'].fields_get(
+            ['partner_shipping_id'], ['string'])
+        self.assertEqual(
+            order_fields['partner_shipping_id']['string'], 'Site Address')
+        move_fields = self.env['account.move'].fields_get(
+            ['partner_shipping_id'], ['string'])
+        if move_fields.get('partner_shipping_id'):
+            self.assertEqual(
+                move_fields['partner_shipping_id']['string'], 'Site Address')
