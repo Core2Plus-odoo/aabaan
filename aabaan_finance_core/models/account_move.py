@@ -29,6 +29,24 @@ class AccountMove(models.Model):
         help="Manual collection status; Partially/Fully Paid and Overdue "
              "come from the payment state and due date.")
     recovery_promise_date = fields.Date(string="Promised Date", copy=False)
+    aabaan_services = fields.Char(
+        string="Services", store=True, compute='_compute_aabaan_services',
+        help="All services on the contracts behind this invoice — the "
+             "service dimension of the recovery grid (§5).")
+
+    @api.depends('invoice_line_ids.sale_line_ids')
+    def _compute_aabaan_services(self):
+        line_has_sale = 'sale_line_ids' in self.env['account.move.line']._fields
+        for move in self:
+            names = []
+            if line_has_sale and move.move_type in ('out_invoice', 'out_refund'):
+                for order in move.invoice_line_ids.sale_line_ids.order_id:
+                    if not hasattr(order, 'aabaan_service_names'):
+                        break
+                    for name in order.aabaan_service_names():
+                        if name not in names:
+                            names.append(name)
+            move.aabaan_services = " + ".join(names)
 
     @api.depends('invoice_date_due', 'move_type', 'state', 'payment_state')
     def _compute_recovery_bucket(self):

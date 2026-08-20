@@ -30,7 +30,7 @@
                         <span>✓ <b>Municipality approved</b> — Ajman, Sharjah &amp; Dubai LO 11</span>
                         <span>✓ MOCCAE-approved pesticides</span>
                         <span>✓ <b>10-year</b> termite warranty</span>
-                        <span>✓ TRN 104302919600003</span>
+                        <span>✓ TRN <t t-out="res_company.vat or '104302919600003'"/></span>
                     </div>
                 </section>
 

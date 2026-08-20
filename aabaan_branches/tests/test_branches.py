@@ -1,29 +1,58 @@
+# Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 from odoo.tests import TransactionCase, tagged
 
-from odoo.addons.aabaan_branches import BRANCH_EMIRATES, _setup_branches
+from odoo.addons.aabaan_branches import ENTITIES, _setup_entities
 
 
 @tagged('post_install', '-at_install')
-class TestEmirateBranches(TransactionCase):
+class TestLegalEntities(TransactionCase):
 
-    def _branches(self):
-        main = self.env.ref('base.main_company')
-        return self.env['res.company'].search([('parent_id', '=', main.id)])
+    def _company_by_registry(self, registry):
+        return self.env['res.company'].sudo().with_context(
+            active_test=False).search(
+            [('company_registry', '=', registry)], limit=1)
 
-    def test_four_branches_seeded(self):
-        branches = self._branches()
-        for emirate in BRANCH_EMIRATES:
-            match = branches.filtered(
-                lambda c: emirate.casefold() in (c.name or '').casefold())
+    def test_three_entities_exist_with_licence_facts(self):
+        for spec in ENTITIES:
+            company = self._company_by_registry(spec['registry'])
+            self.assertTrue(
+                company, f"missing entity for licence {spec['registry']}")
+            self.assertTrue(company.active)
+            self.assertFalse(
+                company.parent_id,
+                "entities are standalone companies, not branches")
             self.assertEqual(
-                len(match), 1, f"expected exactly one {emirate} branch")
+                str(company.aabaan_licence_expiry), spec['licence_expiry'])
+            self.assertEqual(company.city, spec['city'])
 
-    def test_seeding_is_idempotent(self):
-        before = len(self._branches())
-        _setup_branches(self.env)
-        self.assertEqual(len(self._branches()), before)
+    def test_setup_is_idempotent(self):
+        Company = self.env['res.company'].sudo().with_context(
+            active_test=False)
+        before = Company.search_count([])
+        _setup_entities(self.env)
+        self.assertEqual(Company.search_count([]), before)
 
-    def test_admin_sees_the_branches(self):
-        admin = self.env.ref('base.user_admin')
-        for branch in self._branches():
-            self.assertIn(branch, admin.company_ids)
+    def test_main_registry_corrected_from_legacy(self):
+        main = self.env.ref('base.main_company')
+        main.company_registry = '109374'
+        _setup_entities(self.env)
+        self.assertEqual(main.company_registry, '103074')
+
+    def test_licence_cron_raises_activity(self):
+        main = self.env.ref('base.main_company')
+        main.aabaan_licence_expiry = '2026-01-01'  # long past
+        self.env['res.company']._cron_aabaan_licence_expiry()
+        activity = self.env['mail.activity'].search([
+            ('res_model', '=', 'res.partner'),
+            ('res_id', '=', main.partner_id.id),
+        ], limit=1)
+        self.assertTrue(activity)
+        count = self.env['mail.activity'].search_count(
+            [('res_model', '=', 'res.partner'),
+             ('res_id', '=', main.partner_id.id)])
+        self.env['res.company']._cron_aabaan_licence_expiry()
+        self.assertEqual(
+            self.env['mail.activity'].search_count(
+                [('res_model', '=', 'res.partner'),
+                 ('res_id', '=', main.partner_id.id)]),
+            count, "no duplicate renewal activities")

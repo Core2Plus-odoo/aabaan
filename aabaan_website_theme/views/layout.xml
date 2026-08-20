@@ -14,7 +14,7 @@
                             <h5>Aaban Classic Building Cleaning L.L.C.</h5>
                             <p class="mb-2">Municipality-approved pest control, water-tank
                                 cleaning, anti-termite and deep cleaning across the UAE.</p>
-                            <span>Trade Licence 109374<br/>TRN 104302919600003</span>
+                            <span>Trade Licence <t t-out="res_company.company_registry or '103074'"/><br/>TRN <t t-out="res_company.vat or '104302919600003'"/></span>
                         </div>
                         <div class="col-lg-2 col-md-6 col-6">
                             <h5>Services</h5>

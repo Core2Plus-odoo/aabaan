@@ -24,7 +24,7 @@
                     <div class="col-md-6"><div class="ab-card">
                         <h2 class="h6 fw-bold mb-3">Licensed &amp; approved</h2>
                         <ul class="ab-tick small text-muted mb-0">
-                            <li><b>Trade Licence 109374</b> · TRN 104302919600003</li>
+                            <li><b>Trade Licence <t t-out="res_company.company_registry or '103074'"/></b> · TRN <t t-out="res_company.vat or '104302919600003'"/></li>
                             <li>Municipality approvals — Ajman &amp; Sharjah</li>
                             <li><b>Dubai Public Health Pest Control Agreement</b> (Local Order 11 of 2003)</li>
                             <li>MOCCAE-approved pesticides only</li>
@@ -62,6 +62,6 @@
         <field name="url">/about</field>
         <field name="view_id" ref="page_about"/>
         <field name="is_published" eval="True"/>
-        <field name="website_meta_description">Aaban Classic Building Cleaning L.L.C. — municipality-approved pest control and cleaning from Ajman, 600+ annual contracts across five emirates. Licence 109374.</field>
+        <field name="website_meta_description">Aaban Classic Building Cleaning L.L.C. — municipality-approved pest control and cleaning from Ajman, 600+ annual contracts across five emirates. Municipality approved, TRN registered.</field>
     </record>
 </odoo>

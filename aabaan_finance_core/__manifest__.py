@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Finance Core',
-    'version': '19.0.1.1.0',
+    'version': '19.0.1.2.0',
     'category': 'Accounting',
     'summary': 'Finance dept P1+P2: enforced branch/service analytic segregation and recovery classification',
     'description': """
