@@ -278,6 +278,70 @@ class AabaanCeoDashboard(models.AbstractModel):
                 'model': 'account.move', 'domain': m_domain,
             })
 
+        # cash collected — inbound posted payments, by month
+        def collected(start, end):
+            domain = [
+                ('payment_type', '=', 'inbound'),
+                ('state', 'in', ('posted', 'paid', 'in_process')),
+                ('date', '>=', fields.Date.to_string(start)),
+                ('date', '<', fields.Date.to_string(end))]
+            amount, count = self._sums(
+                'account.payment', domain, ['amount:sum', '__count'])
+            return {'label': 'Cash collected', 'gross': amount, 'count': count,
+                    'model': 'account.payment', 'domain': domain}
+
+        data['collections_months'] = []
+        for offset in range(-11, 1):
+            m_from = trend_start + relativedelta(months=offset)
+            m_to = trend_start + relativedelta(months=offset + 1)
+            entry = collected(m_from, m_to)
+            entry.update(key=m_from.strftime('%Y-%m'),
+                         label=m_from.strftime('%b'))
+            data['collections_months'].append(entry)
+
+        # this month vs last month — both real sums shown side by side
+        def period_metrics(offset):
+            start = trend_start + relativedelta(months=offset)
+            end = start + relativedelta(months=1)
+            s, e = fields.Date.to_string(start), fields.Date.to_string(end)
+            out = {}
+            nb_domain = [('state', '=', 'sale'),
+                         ('date_order', '>=', s), ('date_order', '<', e)]
+            g, c = self._sums('sale.order', nb_domain,
+                              ['amount_total:sum', '__count'])
+            out['new_book'] = {'label': 'New contracts', 'gross': g, 'count': c,
+                               'model': 'sale.order', 'domain': nb_domain}
+            iv_domain = inv_base + [('invoice_date', '>=', s),
+                                    ('invoice_date', '<', e)]
+            g, c = self._sums('account.move', iv_domain,
+                              ['amount_untaxed_signed:sum', '__count'])
+            out['invoiced'] = {'label': 'Invoiced (net)', 'gross': g, 'count': c,
+                               'model': 'account.move', 'domain': iv_domain}
+            out['collected'] = collected(start, end)
+            if 'crm.lead' in env:
+                l_domain = [('create_date', '>=', s), ('create_date', '<', e)]
+                out['leads'] = {'label': 'New leads',
+                                'count': env['crm.lead'].search_count(l_domain),
+                                'model': 'crm.lead', 'domain': l_domain}
+            return out
+
+        data['this_month'] = period_metrics(0)
+        data['last_month'] = period_metrics(-1)
+
+        # top customers — concentration of the confirmed book
+        data['top_customers'] = []
+        rows = Sale._read_group(
+            book_domain, ['partner_id'], ['amount_total:sum', '__count'])
+        rows.sort(key=lambda row: -(row[1] or 0.0))
+        for partner, total, cnt in rows[:8]:
+            data['top_customers'].append({
+                'key': str(partner.id), 'label': partner.name,
+                'gross': total or 0.0, 'count': cnt,
+                'share': round(100.0 * (total or 0.0) / gross, 1) if gross else 0.0,
+                'model': 'sale.order',
+                'domain': book_domain + [('partner_id', '=', partner.id)],
+            })
+
         # top technicians — completed visits (field ops stamps completion)
         data['technicians'] = []
         done_domain = fsm_domain + (

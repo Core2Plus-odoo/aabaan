@@ -11,13 +11,21 @@ export class AabaanCeoDashboard extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.state = useState({ data: null, error: null });
-        onWillStart(async () => {
-            try {
-                this.state.data = await this.orm.call("aabaan.ceo.dashboard", "get_data", []);
-            } catch (error) {
-                this.state.error = String((error && error.message) || error);
-            }
-        });
+        onWillStart(() => this.load());
+    }
+
+    async load() {
+        this.state.data = null;
+        this.state.error = null;
+        try {
+            this.state.data = await this.orm.call("aabaan.ceo.dashboard", "get_data", []);
+        } catch (error) {
+            this.state.error = String((error && error.message) || error);
+        }
+    }
+
+    refresh() {
+        this.load();
     }
 
     fmt(value) {
