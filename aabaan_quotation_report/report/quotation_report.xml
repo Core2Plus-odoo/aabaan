@@ -7,12 +7,12 @@
         <field name="name">Aabaan Letterhead A4</field>
         <field name="format">A4</field>
         <field name="orientation">Portrait</field>
-        <field name="margin_top">46</field>
-        <field name="margin_bottom">46</field>
+        <field name="margin_top">38</field>
+        <field name="margin_bottom">42</field>
         <field name="margin_left">10</field>
         <field name="margin_right">10</field>
         <field name="header_line" eval="False"/>
-        <field name="header_spacing">40</field>
+        <field name="header_spacing">32</field>
         <field name="dpi">90</field>
     </record>
 
@@ -21,35 +21,32 @@
         <t t-set="is_quote" t-value="doc.state in ('draft', 'sent')"/>
         <t t-set="has_discount" t-value="any(l.discount for l in doc.order_line if not l.display_type)"/>
 
-        <!-- Letterhead header: black angular band, orange slash, logo right -->
+        <!-- Letterhead header: flat two-tone band (no CSS triangles — they
+             render unreliably in wkhtmltopdf), logo right -->
         <div class="header">
-            <table style="width: 100%; border-collapse: collapse; font-family: Helvetica, Arial, sans-serif;">
+            <style>
+                .ab-plain { border: none !important; border-collapse: collapse; }
+                .ab-plain td { border: none !important; }
+            </style>
+            <table class="ab-plain" style="width: 100%; font-family: Helvetica, Arial, sans-serif;">
                 <tr>
-                    <td style="vertical-align: top; padding: 0;">
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
+                    <td style="vertical-align: middle; padding: 0;">
+                        <table class="ab-plain" style="width: 100%;">
                             <tr>
-                                <td style="width: 58%; background-color: #1A1A1C; height: 15px; padding: 0;"/>
-                                <td style="width: 24px; padding: 0; vertical-align: top;">
-                                    <div style="width: 0; height: 0; border-left: 24px solid #1A1A1C; border-bottom: 15px solid transparent;"/>
-                                </td>
-                                <td style="width: 18px; padding: 0; vertical-align: top;">
-                                    <div style="width: 0; height: 0; border-bottom: 15px solid #EF7D25; border-left: 18px solid transparent;"/>
-                                </td>
-                                <td style="background-color: #EF7D25; height: 15px; padding: 0;"/>
+                                <td style="width: 60%; background-color: #1A1A1C; height: 16px; padding: 0; font-size: 1px;">&#160;</td>
+                                <td style="width: 6px; padding: 0; font-size: 1px;">&#160;</td>
+                                <td style="background-color: #EF7D25; height: 16px; padding: 0; font-size: 1px;">&#160;</td>
                             </tr>
                         </table>
-                        <table style="width: 72%; border-collapse: collapse; margin-top: 4px;">
+                        <table class="ab-plain" style="width: 44%; margin-top: 4px;">
                             <tr>
-                                <td style="background-color: #1A1A1C; height: 10px; padding: 0;"/>
-                                <td style="width: 18px; padding: 0; vertical-align: top;">
-                                    <div style="width: 0; height: 0; border-left: 18px solid #1A1A1C; border-bottom: 10px solid transparent;"/>
-                                </td>
+                                <td style="background-color: #EF7D25; height: 6px; padding: 0; font-size: 1px;">&#160;</td>
                             </tr>
                         </table>
                     </td>
-                    <td style="width: 200px; text-align: right; vertical-align: top; padding: 0 0 0 14px;">
+                    <td style="width: 205px; text-align: right; vertical-align: top; padding: 0 0 0 14px;">
                         <img t-if="company.logo" t-att-src="image_data_uri(company.logo)"
-                             style="max-height: 62px; max-width: 185px;" alt="Logo"/>
+                             style="max-height: 56px; max-width: 180px;" alt="Logo"/>
                         <div t-else="" style="font-size: 20px; font-weight: bold; color: #EF7D25;"
                              t-esc="company.name"/>
                         <div style="font-size: 7.5px; color: #EF7D25; font-weight: bold; margin-top: 2px;">
@@ -61,11 +58,17 @@
         </div>
 
         <!-- Document body -->
-        <div class="article" t-att-data-oe-model="doc._name" t-att-data-oe-id="doc.id">
+        <div class="article">
+            <style>
+                .ab-plain { border: none !important; border-collapse: collapse; }
+                .ab-plain td { border: none !important; }
+                .ab-note p { margin: 4px 0; orphans: 3; widows: 3; }
+                .ab-note table { page-break-inside: avoid; }
+            </style>
             <div style="font-family: Helvetica, Arial, sans-serif; color: #1A1A1C; font-size: 10px; line-height: 1.4;">
 
                 <!-- Customer name + title / ref block -->
-                <table style="width: 100%; border-collapse: collapse;">
+                <table class="ab-plain" style="width: 100%;">
                     <tr>
                         <td style="vertical-align: top; padding-top: 8px;">
                             <div style="font-size: 12px; font-weight: bold; text-transform: uppercase;"
@@ -84,24 +87,24 @@
                             </div>
                             <table style="width: 100%; border-collapse: collapse; font-size: 9.5px; margin-top: 5px;">
                                 <tr>
-                                    <td style="background-color: #FDEBDC; color: #EF7D25; font-weight: bold; padding: 4px 7px; text-align: left;">Ref#</td>
-                                    <td style="background-color: #FDEBDC; color: #EF7D25; font-weight: bold; padding: 4px 7px; text-align: right;"
+                                    <td style="background-color: #FDEBDC; color: #EF7D25; font-weight: bold; border: none; padding: 4px 7px; text-align: left;">Ref#</td>
+                                    <td style="background-color: #FDEBDC; color: #EF7D25; font-weight: bold; border: none; padding: 4px 7px; text-align: right;"
                                         t-esc="doc.name"/>
                                 </tr>
                                 <tr>
-                                    <td style="padding: 4px 7px; border-bottom: 1px solid #ECECEE; text-align: left;">Date</td>
-                                    <td style="padding: 4px 7px; border-bottom: 1px solid #ECECEE; text-align: right; font-weight: bold;">
+                                    <td style="padding: 4px 7px; border: none; border-bottom: 1px solid #ECECEE; text-align: left;">Date</td>
+                                    <td style="padding: 4px 7px; border: none; border-bottom: 1px solid #ECECEE; text-align: right; font-weight: bold;">
                                         <t t-if="doc.date_order" t-esc="doc.date_order.strftime('%d-%b-%Y')"/>
                                     </td>
                                 </tr>
                                 <tr t-if="is_quote and doc.validity_date">
-                                    <td style="padding: 4px 7px; border-bottom: 1px solid #ECECEE; text-align: left;">Valid Until</td>
-                                    <td style="padding: 4px 7px; border-bottom: 1px solid #ECECEE; text-align: right; font-weight: bold;"
+                                    <td style="padding: 4px 7px; border: none; border-bottom: 1px solid #ECECEE; text-align: left;">Valid Until</td>
+                                    <td style="padding: 4px 7px; border: none; border-bottom: 1px solid #ECECEE; text-align: right; font-weight: bold;"
                                         t-esc="doc.validity_date.strftime('%d-%b-%Y')"/>
                                 </tr>
                                 <tr t-if="doc.client_order_ref">
-                                    <td style="padding: 4px 7px; border-bottom: 1px solid #ECECEE; text-align: left;">LPO / Ref</td>
-                                    <td style="padding: 4px 7px; border-bottom: 1px solid #ECECEE; text-align: right; font-weight: bold;"
+                                    <td style="padding: 4px 7px; border: none; border-bottom: 1px solid #ECECEE; text-align: left;">LPO / Ref</td>
+                                    <td style="padding: 4px 7px; border: none; border-bottom: 1px solid #ECECEE; text-align: right; font-weight: bold;"
                                         t-esc="doc.client_order_ref"/>
                                 </tr>
                             </table>
@@ -123,20 +126,21 @@
                 </div>
 
                 <!-- Contract articles: the order's terms, carried by the
-                     quotation templates from the signed agreements -->
-                <div t-if="doc.note" t-out="doc.note"
+                     quotation templates from the signed agreements; cleaned
+                     for print (placeholder chips become underlined blanks) -->
+                <div t-if="doc.note" t-out="doc._aabaan_note_html()" class="ab-note"
                      style="margin-top: 10px; font-size: 9.5px; line-height: 1.45;"/>
 
                 <!-- Line items -->
                 <table style="width: 100%; border-collapse: collapse; font-size: 9.5px; margin-top: 14px;">
                     <thead>
                         <tr style="background-color: #EF7D25; color: #ffffff; font-weight: bold;">
-                            <td style="width: 26px; padding: 6px 4px; text-align: center;">&#160;</td>
-                            <td style="padding: 6px; text-align: center;">Description</td>
-                            <td style="width: 52px; padding: 6px; text-align: center;">Unit</td>
-                            <td style="width: 80px; padding: 6px; text-align: center;">Rate</td>
-                            <td t-if="has_discount" style="width: 52px; padding: 6px; text-align: center;">Disc.%</td>
-                            <td style="width: 95px; padding: 6px; text-align: center;">Grand Total</td>
+                            <td style="width: 26px; border: none; padding: 6px 4px; text-align: center;">&#160;</td>
+                            <td style="border: none; padding: 6px; text-align: center;">Description</td>
+                            <td style="width: 52px; border: none; padding: 6px; text-align: center;">Unit</td>
+                            <td style="width: 80px; border: none; padding: 6px; text-align: center;">Rate</td>
+                            <td t-if="has_discount" style="width: 52px; border: none; padding: 6px; text-align: center;">Disc.%</td>
+                            <td style="width: 95px; border: none; padding: 6px; text-align: center;">Grand Total</td>
                         </tr>
                     </thead>
                     <tbody>
@@ -157,7 +161,7 @@
                                 <td style="text-align: center; padding: 5px 4px; border: 1px solid #D9D9D9; vertical-align: top;"
                                     t-esc="row['no']"/>
                                 <td style="padding: 5px 7px; border: 1px solid #D9D9D9; vertical-align: top;">
-                                    <span t-field="line.name"/>
+                                    <span style="white-space: pre-line;" t-esc="doc._aabaan_line_desc(line)"/>
                                 </td>
                                 <td style="text-align: center; padding: 5px 4px; border: 1px solid #D9D9D9; vertical-align: top;"
                                     t-esc="'%g' % line.product_uom_qty"/>
@@ -178,20 +182,20 @@
                 <!-- Totals -->
                 <table style="width: 42%; margin-left: 58%; border-collapse: collapse; font-size: 9.5px; margin-top: 8px; page-break-inside: avoid;">
                     <tr>
-                        <td style="padding: 3px 7px; text-align: left;">Subtotal (excl. VAT)</td>
-                        <td style="padding: 3px 7px; text-align: right;"
+                        <td style="padding: 3px 7px; border: none; text-align: left;">Subtotal (excl. VAT)</td>
+                        <td style="padding: 3px 7px; border: none; text-align: right;"
                             t-out="doc.amount_untaxed"
                             t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
                     </tr>
                     <tr>
-                        <td style="padding: 3px 7px; text-align: left;">VAT</td>
-                        <td style="padding: 3px 7px; text-align: right;"
+                        <td style="padding: 3px 7px; border: none; text-align: left;">VAT</td>
+                        <td style="padding: 3px 7px; border: none; text-align: right;"
                             t-out="doc.amount_tax"
                             t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
                     </tr>
                     <tr style="font-weight: bold; font-size: 10.5px;">
-                        <td style="padding: 4px 7px; text-align: left; border-top: 2px solid #EF7D25;">Grand Total</td>
-                        <td style="padding: 4px 7px; text-align: right; border-top: 2px solid #EF7D25; color: #EF7D25;"
+                        <td style="padding: 4px 7px; text-align: left; border: none; border-top: 2px solid #EF7D25;">Grand Total</td>
+                        <td style="padding: 4px 7px; text-align: right; border: none; border-top: 2px solid #EF7D25; color: #EF7D25;"
                             t-out="doc.amount_total"
                             t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
                     </tr>
@@ -207,9 +211,10 @@
                 </div>
 
                 <!-- Signatures -->
-                <table style="width: 100%; border-collapse: collapse; margin-top: 36px; page-break-inside: avoid; font-size: 9.5px;">
+                <table class="ab-plain" style="width: 100%; margin-top: 36px; page-break-inside: avoid; font-size: 9.5px;">
                     <tr>
                         <td style="width: 46%; vertical-align: bottom;">
+                            <div style="font-size: 8px; color: #9A9AA0; text-transform: uppercase; letter-spacing: 1px;">For the Second Party</div>
                             <div style="font-weight: bold;" t-esc="doc.partner_id.name"/>
                             <div style="height: 54px; margin-top: 6px;">
                                 <img t-if="doc.signature" t-att-src="image_data_uri(doc.signature)"
@@ -224,6 +229,7 @@
                         </td>
                         <td style="width: 8%;"/>
                         <td style="width: 46%; vertical-align: bottom;">
+                            <div style="font-size: 8px; color: #9A9AA0; text-transform: uppercase; letter-spacing: 1px;">For the First Party</div>
                             <div style="font-weight: bold;">M/s. <t t-esc="company.name"/></div>
                             <div style="height: 54px; margin-top: 6px;"/>
                             <div style="border-top: 1px solid #1A1A1C; width: 75%;"/>
@@ -234,13 +240,17 @@
             </div>
         </div>
 
-        <!-- Letterhead footer: offices, contact, compliance, angular bar -->
+        <!-- Letterhead footer: offices, contact, compliance, two-tone bar -->
         <div class="footer">
+            <style>
+                .ab-plain { border: none !important; border-collapse: collapse; }
+                .ab-plain td { border: none !important; }
+            </style>
             <div style="font-family: Helvetica, Arial, sans-serif;">
                 <div style="font-size: 7.5px; text-align: center; color: #9A9AA0; font-style: italic;">
                     Page <span class="page"/> of <span class="topage"/>
                 </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 8.5px; color: #1A1A1C; margin-top: 2px;">
+                <table class="ab-plain" style="width: 100%; font-size: 8.5px; color: #1A1A1C; margin-top: 2px;">
                     <tr>
                         <td style="vertical-align: top;">
                             <div style="color: #EF7D25; font-weight: bold;">Head Office:</div>
@@ -260,13 +270,11 @@
                         </td>
                     </tr>
                 </table>
-                <table style="width: 100%; border-collapse: collapse; margin-top: 4px;">
+                <table class="ab-plain" style="width: 100%; margin-top: 4px;">
                     <tr>
-                        <td style="width: 30%; background-color: #EF7D25; height: 10px; padding: 0;"/>
-                        <td style="width: 16px; padding: 0; vertical-align: bottom;">
-                            <div style="width: 0; height: 0; border-right: 16px solid #1A1A1C; border-top: 10px solid transparent;"/>
-                        </td>
-                        <td style="background-color: #1A1A1C; height: 10px; padding: 0;"/>
+                        <td style="width: 30%; background-color: #EF7D25; height: 8px; padding: 0; font-size: 1px;">&#160;</td>
+                        <td style="width: 6px; padding: 0; font-size: 1px;">&#160;</td>
+                        <td style="background-color: #1A1A1C; height: 8px; padding: 0; font-size: 1px;">&#160;</td>
                     </tr>
                 </table>
             </div>
