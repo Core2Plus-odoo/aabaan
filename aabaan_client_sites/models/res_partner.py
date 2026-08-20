@@ -55,12 +55,14 @@ class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
     # In a service business the "delivery" address IS the site being
-    # serviced — relabel it everywhere (form, lists, filters, exports).
+    # serviced — relabel it everywhere (form, lists, filters, exports) and
+    # offer only the chosen client's own sites, not the whole address book.
     partner_shipping_id = fields.Many2one(
         string="Site Address",
+        domain="[('id', 'child_of', partner_id)]",
         help="The location being serviced under this contract — one of the "
-             "client's site contacts. Visits, area routing and the emirate "
-             "tagging all follow it.")
+             "client's site contacts (pick the customer first). Visits, "
+             "area routing and the emirate tagging all follow it.")
 
     aabaan_site_area = fields.Char(
         string="Site Area", related='partner_shipping_id.aabaan_area',
@@ -71,4 +73,6 @@ class SaleOrder(models.Model):
 class AccountMove(models.Model):
     _inherit = 'account.move'
 
-    partner_shipping_id = fields.Many2one(string="Site Address")
+    partner_shipping_id = fields.Many2one(
+        string="Site Address",
+        domain="[('id', 'child_of', partner_id)]")
