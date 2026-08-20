@@ -1,6 +1,147 @@
-# The head office (main company, Ajman) stays the parent; these four
-# emirate branches complete the five-emirate coverage.
-BRANCH_EMIRATES = ['Sharjah', 'Dubai', 'Umm Al Quwain', 'Ras Al Khaimah']
+import logging
+
+from . import models
+
+_logger = logging.getLogger(__name__)
+
+# Facts transcribed from the trade licence documents (uploaded scans):
+# Ajman DED professional licence, Dubai DET professional licence,
+# Sharjah EDD trading licence. No figure here is invented.
+ENTITIES = [
+    {
+        'main': True,
+        'hints': ('ajman',),
+        'name': 'Aaban Classic Building Cleaning L.L.C.',
+        'registry': '103074',
+        'licence_expiry': '2027-01-08',
+        'street': 'Shop 2, Al Nuaimiya 1',
+        'city': 'Ajman',
+        'state_hint': 'Ajman',
+    },
+    {
+        'hints': ('dubai',),
+        'name': 'Aaban Classic Building Cleaning — Dubai',
+        'registry': '989256',
+        'licence_expiry': '2026-10-13',
+        'street': 'Office 126, Bin Salloum Building, Hor Al Anz, Deira',
+        'city': 'Dubai',
+        'state_hint': 'Dubai',
+    },
+    {
+        'hints': ('sharjah',),
+        'name': 'Aaban Classic Building Cleaning — SHJ BR 2',
+        'registry': '908692',
+        'licence_expiry': '2026-07-01',
+        'street': 'Shop 1-2, Al Sharq Street, Al Butina',
+        'city': 'Sharjah',
+        'state_hint': 'Sharjah',
+    },
+]
+# The registry number the letterhead used to carry; it appears on none of
+# the licence documents, so it is treated as a known-wrong placeholder.
+LEGACY_WRONG_REGISTRY = '109374'
+ARCHIVE_HINTS = ('quwain', 'khaimah')
+
+
+def _setup_entities(env):
+    """The emirate presences are separate legal entities (per the licence
+    documents), not branches: the Ajman LLC is the main company; Dubai and
+    Sharjah become standalone companies carrying their own licence facts;
+    the empty UAQ / RAK companies are archived (recoverable). Idempotent —
+    matching by emirate hint in name/city; values set only when empty,
+    known-wrong, or coming from the licence."""
+    Company = env['res.company'].sudo()
+    State = env['res.country.state']
+    country = env.ref('base.ae', raise_if_not_found=False)
+    main = env.ref('base.main_company', raise_if_not_found=False)
+    everyone = Company.with_context(active_test=False).search(
+        [('id', '!=', main.id if main else False)])
+
+    def match(hints):
+        for company in everyone:
+            haystack = f"{company.name} {company.city or ''}".casefold()
+            if any(hint in haystack for hint in hints):
+                return company
+        return Company
+
+    def state_for(hint):
+        if not country:
+            return State
+        return State.search([
+            ('country_id', '=', country.id),
+            ('name', 'ilike', hint.split()[0])], limit=1)
+
+    entities = env['res.company']
+    for spec in ENTITIES:
+        company = main if spec.get('main') else match(spec['hints'])
+        vals = {}
+        if not company:
+            vals = {'name': spec['name']}
+            if country:
+                vals['country_id'] = country.id
+            company = Company.create(vals)
+            vals = {}
+        if not spec.get('main'):
+            if company.parent_id:
+                vals['parent_id'] = False
+            if company.name != spec['name']:
+                vals['name'] = spec['name']
+            if not company.active:
+                vals['active'] = True
+        if not company.company_registry \
+                or company.company_registry == LEGACY_WRONG_REGISTRY:
+            vals['company_registry'] = spec['registry']
+        if 'aabaan_licence_expiry' in company._fields \
+                and not company.aabaan_licence_expiry:
+            vals['aabaan_licence_expiry'] = spec['licence_expiry']
+        if not company.street:
+            vals['street'] = spec['street']
+        if not company.city:
+            vals['city'] = spec['city']
+        if country and company.country_id != country:
+            vals['country_id'] = country.id
+        state = state_for(spec['state_hint'])
+        if state and company.state_id != state:
+            vals['state_id'] = state.id
+        if vals:
+            try:
+                company.write(vals)
+            except Exception:
+                _logger.exception(
+                    "Aabaan entities: could not update %s", company.name)
+        entities |= company
+        # a detached entity needs its own UAE chart of accounts
+        if not spec.get('main') and 'account.chart.template' in env:
+            try:
+                if not env['account.account'].sudo().with_company(
+                        company).search_count([]):
+                    env['account.chart.template'].try_loading(
+                        'ae', company=company, install_demo=False)
+            except Exception:
+                _logger.info(
+                    "Aabaan entities: chart for %s to be configured in "
+                    "Accounting settings", company.name)
+
+    # archive the empty UAQ / RAK companies (never delete)
+    for company in everyone.filtered(
+            lambda c: c.active and c not in entities
+            and any(h in f"{c.name} {c.city or ''}".casefold()
+                    for h in ARCHIVE_HINTS)):
+        try:
+            users = env['res.users'].sudo().search(
+                [('company_ids', 'in', company.id)])
+            users.write({'company_ids': [(3, company.id)]})
+            company.write({'active': False})
+            _logger.info("Aabaan entities: archived %s", company.name)
+        except Exception:
+            _logger.exception(
+                "Aabaan entities: could not archive %s", company.name)
+
+    if main:
+        users = env['res.users'].sudo().search(
+            [('company_ids', 'in', main.id)])
+        users.write({'company_ids': [(4, c.id) for c in entities]})
+
 
 # Odoo demo defaults that must never appear on the public contact page.
 PLACEHOLDER_HINTS = ('fake', 'example.com', 'yourcompany', '555-555',
@@ -14,9 +155,8 @@ def _looks_placeholder(value):
 
 def _setup_head_office(env):
     """Replace Odoo's demo contact data on the head office with the real
-    facts (from the letterhead / trade licence). Only empty or clearly
-    placeholder values are touched — real data entered by the business is
-    never overwritten."""
+    facts (letterhead / licence documents). Only empty or clearly
+    placeholder values are touched."""
     main = env.ref('base.main_company', raise_if_not_found=False)
     if not main:
         return
@@ -31,16 +171,6 @@ def _setup_head_office(env):
         vals['street'] = False
     if _looks_placeholder(main.street2):
         vals['street2'] = False
-    if not main.city or _looks_placeholder(main.city):
-        vals['city'] = 'Ajman'
-    country = env.ref('base.ae', raise_if_not_found=False)
-    if country and main.country_id != country:
-        vals['country_id'] = country.id
-        state = env['res.country.state'].search([
-            ('country_id', '=', country.id), ('name', 'ilike', 'Ajman'),
-        ], limit=1)
-        vals['state_id'] = state.id if state else False
-        vals['zip'] = False
     if vals:
         main.write(vals)
     if not main.vat:
@@ -51,44 +181,11 @@ def _setup_head_office(env):
 
 
 def _setup_branches(env):
-    """Idempotently seed the four emirate branches as native Odoo company
-    branches (child companies of the head office — shared chart of
-    accounts, taxes and fiscal settings), and let every user who can see
-    the head office also see its branches."""
-    main = env.ref('base.main_company', raise_if_not_found=False)
-    if not main:
-        return
-    Company = env['res.company']
-    State = env['res.country.state']
-    country = main.country_id or env.ref('base.ae', raise_if_not_found=False)
-
-    branches = Company.browse()
-    existing = Company.search([('parent_id', '=', main.id)])
-    for emirate in BRANCH_EMIRATES:
-        branch = existing.filtered(
-            lambda c: emirate.casefold() in (c.name or '').casefold())[:1]
-        if not branch:
-            vals = {
-                'name': f"{main.name} — {emirate}",
-                'parent_id': main.id,
-                'city': emirate,
-            }
-            if country:
-                vals['country_id'] = country.id
-                state = State.search([
-                    ('country_id', '=', country.id),
-                    ('name', 'ilike', emirate.split()[0]),
-                ], limit=1)
-                if state:
-                    vals['state_id'] = state.id
-            branch = Company.create(vals)
-        branches |= branch
-
-    if branches:
-        users = env['res.users'].search([('company_ids', 'in', main.id)])
-        users.write({'company_ids': [(4, b.id) for b in branches]})
+    """Kept for the 19.0.1.1.0 migration — the branch model was replaced
+    by separate legal entities."""
+    _setup_entities(env)
 
 
 def _post_init_hook(env):
     _setup_head_office(env)
-    _setup_branches(env)
+    _setup_entities(env)

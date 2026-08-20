@@ -54,7 +54,25 @@ class ProjectTask(models.Model):
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
 
+    # In a service business the "delivery" address IS the site being
+    # serviced — relabel it everywhere (form, lists, filters, exports) and
+    # offer only the chosen client's own sites, not the whole address book.
+    partner_shipping_id = fields.Many2one(
+        string="Site Address",
+        domain="[('id', 'child_of', partner_id)]",
+        help="The location being serviced under this contract — one of the "
+             "client's site contacts (pick the customer first). Visits, "
+             "area routing and the emirate tagging all follow it.")
+
     aabaan_site_area = fields.Char(
         string="Site Area", related='partner_shipping_id.aabaan_area',
         readonly=True,
-        help="Area of the service (delivery) address on this contract.")
+        help="Area of the site address on this contract.")
+
+
+class AccountMove(models.Model):
+    _inherit = 'account.move'
+
+    partner_shipping_id = fields.Many2one(
+        string="Site Address",
+        domain="[('id', 'child_of', partner_id)]")
