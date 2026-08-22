@@ -1,52 +1,88 @@
-# Aabaan CEO Dashboard (`aabaan_ceo_dashboard`)
+# Aabaan Executive Command Centre (`aabaan_ceo_dashboard`)
 
-A native, live, drillable executive dashboard inside Odoo. Menu: **CEO
-Dashboard** (visible to sales managers). Styled after the Aaban Services
-letterhead — ink masthead with the orange slash.
+Five tabs, live from the database, every figure one click from its
+evidence. Menu: **Command Centre** (sales managers). Styled after the
+Aaban letterhead — ink masthead with the orange slash.
 
-## What it shows (all live from the database)
+Each tab loads on demand, so opening the dashboard never runs the queries
+for screens you are not looking at. The period selector (this month / last
+month / this quarter / year to date / last 12 months) bounds every
+period-scoped figure, and each one is compared against **the previous
+window of the same length**, so a delta is always like-for-like.
 
-- **Contracted book** — confirmed sale orders: gross, net of VAT, count;
-  split by service line (`x_service_line`) and emirate regime
-  (`x_emirate_regime`).
-- **Open quotations** and the **CRM pipeline** (open leads/opportunities and
-  expected revenue).
-- **Renewal pipeline** — contract value **past end-of-term** (critical),
-  next 90 days, beyond, and open-ended, from `sale_subscription`'s
-  `end_date`.
-- **Field service** — visits by type (routine / follow-up / complaint),
-  visits scheduled in the next 30 days, visits past their planned date, and
-  SLA-deadline breaches (`x_sla_due`).
-- **Receivables** — posted customer invoices outstanding, with the overdue
-  slice, and the customer count.
-- **Client industry split** — the book grouped by the customer's Industry
-  (`res.partner.industry_id`; set it on the contact or map it at import).
-- **Contract size mix** — five value bands from micro-contracts to majors.
-- **Month-by-month renewal timeline** — overdue, the next 12 calendar
-  months, and the tail, under the headline renewal buckets.
-- **F&B premises count** (Dubai LO 11 flag from the visit module).
+## The tabs
 
-**Every tile, bar and chip is a drill-down**: it opens the underlying
-records as a filtered list view, so the number on screen is always one
-click from its evidence.
+**Executive Overview** — contracted book, open quotations, pipeline,
+receivables (with the overdue slice), customers. A period block showing new
+contracts, invoiced net of VAT, cash collected and new leads, each beside
+the previous window. Twelve-month invoiced-revenue and cash-collected
+trends. Top customers by share of book, plus service-line and emirate mix.
 
-## Design notes
+**Field Operations** — visits completed with delta; **first-time-fix rate**
+(completed visits that did *not* need a follow-up raised — a real outcome
+recorded by the field-ops completion flow, not a proxy); **SLA-clean rate**
+(visits planned in the window never escalated); **average time on site**
+from real check-in/check-out stamps. Live attention cards (past planned
+date, unassigned in the next 7 days, SLA passed, escalated and still open)
+which deliberately ignore the period filter — an overdue visit is overdue
+today regardless of what window you are looking at. Technicians ranked by
+visits completed with real hours on site; open visits by stage, type and
+emirate.
 
-- Data provider: `aabaan.ceo.dashboard` (AbstractModel), one `get_data()`
-  call, all aggregation batched via `_read_group` — no per-record loops.
-- The manual `x_*` fields are runtime-resolved (same policy as the other
-  Aabaan modules): a missing field collapses its section into an honest
-  empty state instead of erroring, so the module installs on a bare
-  database.
-- Frontend: OWL client action (`static/src/dashboard.js|xml|scss`), no
-  external libraries.
-- Numbers respect record rules: the dashboard shows what the logged-in
-  manager is allowed to see, because every figure is computed with their
-  access rights.
+**Sales & CRM** — contracts signed with delta, open quotations, quotation
+conversion (of the quotations raised in this window, how many are now
+confirmed — both sides counted on the same set of records), open pipeline
+by stage, **win rate** over decided leads only, lead sources, lost reasons,
+contract size mix.
 
-## Relation to the web dashboard artifact
+**Finance** — receivables, invoiced net of VAT, cash collected, collection
+ratio, and **days sales outstanding with its inputs printed underneath** so
+the number can be checked by hand. Five-band ageing measured from the due
+date, with "not yet due" kept separate from the overdue bands so the two
+are never conflated. Recovery classification (from `aabaan_finance_core`),
+invoiced-against-collected side by side, top debtors with their overdue
+slice, and outstanding by service.
 
-The claude.ai artifact ("Aaban — CEO Dashboard") is a snapshot of the
-pre-migration master data sheet. This module is the live system view — it
-starts near-zero on the clean database and fills as contracts, visits and
-invoices are created.
+**AMC & Renewals** — renewal buckets and a twelve-month renewal timeline;
+**contracts at risk**, each with its reason stated ("3 visits past planned
+date · 1 escalated · renews in 40 days"); compliance documents expired or
+expiring (from `aabaan_service_contracts`).
+
+## Design rules held throughout
+
+- **Batched aggregation.** Every figure comes from `_read_group` or
+  `search_count`. No per-record Python loop over contracts or invoices.
+- **Runtime-resolved fields.** The `x_*` fields are manual (Studio) fields
+  on this database, and several fields belong to sibling Aabaan modules
+  that may not be installed. Every one is guarded — a missing field
+  collapses its own section into an honest empty state, and the reason
+  appears in the notes strip at the top of the tab.
+- **No estimated figures.** Where a number cannot be derived from real
+  records it is left out and the reason is stated on screen. An undefined
+  delta or percentage renders as a dash, never as 0% or 100% — both of
+  which would read as measurements.
+
+## Two things deliberately NOT built
+
+- **Technician utilisation %.** That needs each technician's contracted
+  working hours, which this database does not reliably carry. A percentage
+  against an assumed 8-hour day would be an invented number, so the tab
+  shows **real hours on site** and visits completed instead.
+- **A totalled call-out entitlement overage.** `cockpit_unscheduled_over`
+  is a computed, non-stored field — it cannot be summed in a query. It
+  stays per-contract on the Contract Cockpit tab, and the dashboard says so.
+
+## Note on the contract cockpit fields
+
+All `cockpit_*` fields are computed and **not stored**, so they cannot be
+grouped or filtered in a domain, and scoring 600+ contracts one at a time
+would be far too slow for a dashboard. The "contracts at risk" list is
+therefore rebuilt from the same underlying evidence — overdue visits and
+escalations per contract — in two batched queries. Both are real counts,
+not a modelled score, which is also why each row can state its own reason.
+
+## What is configuration (native Odoo)
+
+- Lead sources and lost reasons (CRM) — populate them and the Sales tab
+  fills in.
+- FSM stage names drive the "open visits by stage" breakdown.

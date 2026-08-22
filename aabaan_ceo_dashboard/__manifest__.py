@@ -1,24 +1,37 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
-    'name': 'Aabaan CEO Dashboard',
-    'version': '19.0.1.3.0',
+    'name': 'Aabaan Executive Command Centre',
+    'version': '19.0.2.0.0',
     'category': 'Reporting',
-    'summary': 'Live, drillable executive dashboard: contract book, renewals, visits, pipeline, receivables',
+    'summary': 'Five-tab live executive dashboard: overview, field ops, sales, finance, AMC renewals',
     'description': """
-A native CEO dashboard for Aaban Classic Building Cleaning L.L.C.
+The Executive Command Centre for Aaban Classic Building Cleaning — five
+tabs, each loaded on demand, every figure drillable to the records behind
+it, and a period selector that compares each window against the previous
+window of the same length.
 
-- Contract book (confirmed orders): gross/net value, count, split by service
-  line and emirate regime.
-- Renewal pipeline: value past end-of-term (critical), next 90 days, later,
-  open-ended.
-- Field service: visits by type (routine / follow-up / complaint), scheduled
-  next 30 days, overdue, SLA breaches.
-- Sales pipeline and posted receivables with overdue split.
+- Executive Overview — contracted book, quotations, pipeline, receivables,
+  customers; period block with like-for-like deltas; 12-month invoiced
+  revenue and cash-collected trends; top customers by share of book.
+- Field Operations — visits completed, first-time-fix rate (completed
+  without a follow-up being raised), SLA-clean rate, average time on site
+  from real check-in/check-out stamps; live attention cards; technicians by
+  visits and hours; open visits by stage, type and emirate.
+- Sales & CRM — contracts signed with delta, open quotations, quotation
+  conversion, open pipeline by stage, win rate over decided leads, lead
+  sources, lost reasons, contract size mix.
+- Finance — receivables, invoiced, collected, collection ratio, days sales
+  outstanding (inputs shown on screen), five-band ageing from the due date,
+  recovery classification, invoiced-against-collected, top debtors.
+- AMC & Renewals — renewal buckets and 12-month timeline, contracts at risk
+  with the evidence stated per contract, compliance documents expiring.
 
-Every tile and bar drills into the underlying records as a filtered list
-view. All aggregation is batched (_read_group); the database-defined x_*
-fields are resolved at runtime and the dashboard degrades gracefully when a
-field or module is absent. Menu: CEO Dashboard (sales managers).
+Design rules held throughout: aggregation batched via _read_group; the
+manual x_* fields and sibling-module fields resolved at runtime so a
+missing field collapses its own section instead of raising; and no figure
+estimated — where a number cannot be derived from real records it is left
+out and the reason is stated on screen. Menu: Command Centre (sales
+managers).
 """,
     'author': 'C2P Consultants FZC LLC',
     'license': 'OPL-1',

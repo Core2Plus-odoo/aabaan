@@ -5,17 +5,87 @@ from dateutil.relativedelta import relativedelta
 
 from odoo import api, fields, models
 
+# Tabs of the Executive Command Centre, in the order the client approved.
+TABS = [
+    ('executive', 'Executive Overview'),
+    ('field', 'Field Operations'),
+    ('sales', 'Sales & CRM'),
+    ('finance', 'Finance'),
+    ('amc', 'AMC & Renewals'),
+]
+
+# Period selector. Every period-scoped figure on screen is bounded by the
+# selected window, and compared against the immediately preceding window of
+# the same length — so a delta is always like-for-like.
+PERIODS = [
+    ('this_month', 'This month'),
+    ('last_month', 'Last month'),
+    ('quarter', 'This quarter'),
+    ('ytd', 'Year to date'),
+    ('last_12m', 'Last 12 months'),
+]
+
+# Reading raw check-in/check-out pairs to average time on site: the duration
+# field is computed, not stored, so it cannot be summed by the database. This
+# caps how many rows are pulled back for that one average.
+DURATION_SAMPLE_CAP = 8000
+
 
 class AabaanCeoDashboard(models.AbstractModel):
-    """Data provider for the CEO dashboard client action.
+    """Data provider for the Executive Command Centre client action.
 
-    All aggregation is batched through _read_group. The x_* fields of this
-    database are manual (Studio-style) fields, so every use is guarded: a
-    missing field yields an empty section instead of an error, and the
-    dashboard stays installable on a bare database.
+    Five tabs, each loaded on demand — the client asks for one tab at a
+    time, so opening the dashboard never runs the queries for screens the
+    user isn't looking at.
+
+    Three rules hold everywhere in this file:
+
+    1. Aggregation is batched through ``_read_group`` / ``search_count``.
+       No per-record Python loops over contracts or invoices.
+    2. The ``x_*`` fields are manual (Studio) fields on this database, and
+       several fields belong to sibling Aabaan modules that may not be
+       installed. Every one is guarded: a missing field collapses its
+       section into an honest empty state rather than raising.
+    3. No figure is estimated. Where a number cannot be derived from real
+       records it is left out, and the reason is stated on screen.
+
+    Note on the contract cockpit: ``cockpit_*`` fields are computed and NOT
+    stored, so they cannot be grouped or filtered in a domain. The
+    at-risk contract signals below are therefore rebuilt from the same
+    underlying records (visits, end dates) via batched queries.
     """
     _name = 'aabaan.ceo.dashboard'
-    _description = 'Aaban CEO Dashboard data provider'
+    _description = 'Aaban Executive Command Centre data provider'
+
+    # ------------------------------------------------------------------
+    # periods
+    # ------------------------------------------------------------------
+
+    @api.model
+    def _period_bounds(self, period):
+        """(start, end, previous_start, previous_end) as dates; end is
+        exclusive. The previous window is always the same length as the
+        current one, so every delta compares like with like."""
+        today = fields.Date.context_today(self)
+        month_start = today.replace(day=1)
+        if period == 'last_month':
+            start = month_start - relativedelta(months=1)
+            end = month_start
+        elif period == 'quarter':
+            start = month_start - relativedelta(
+                months=(today.month - 1) % 3)
+            end = start + relativedelta(months=3)
+        elif period == 'ytd':
+            start = today.replace(month=1, day=1)
+            end = today + timedelta(days=1)
+        elif period == 'last_12m':
+            start = month_start - relativedelta(months=11)
+            end = month_start + relativedelta(months=1)
+        else:  # this_month
+            start = month_start
+            end = month_start + relativedelta(months=1)
+        span = end - start
+        return start, end, start - span, start
 
     # ------------------------------------------------------------------
     # helpers
@@ -31,6 +101,57 @@ class AabaanCeoDashboard(models.AbstractModel):
         rows = self.env[model]._read_group(domain, [], aggregates)
         row = rows[0] if rows else tuple(None for _a in aggregates)
         return [value or 0 for value in row]
+
+    @api.model
+    def _metric(self, label, model, domain, aggregates=None, **extra):
+        """One drillable figure: a label, the number(s), and the exact
+        domain that produced it — so every tile on screen is one click
+        from the records behind it. The key is derived from the label so
+        the client always has a stable, unique list key to render with."""
+        out = {
+            'key': ''.join(
+                ch if ch.isalnum() else '_' for ch in label.casefold()),
+            'label': label, 'model': model, 'domain': domain,
+        }
+        if aggregates:
+            values = self._sums(model, domain, aggregates)
+            out['gross'] = values[0]
+            out['count'] = values[-1] if len(values) > 1 else None
+        else:
+            out['count'] = self.env[model].search_count(domain)
+        out.update(extra)
+        return out
+
+    @api.model
+    def _delta(self, current, previous):
+        """Percentage change against the previous window, or None when
+        there is no baseline. An undefined delta renders blank — never as
+        0% or 100%, which would both read as facts."""
+        if not previous:
+            return None
+        return round(100.0 * (current - previous) / abs(previous), 1)
+
+    @api.model
+    def _pct(self, part, whole, digits=1):
+        return round(100.0 * part / whole, digits) if whole else None
+
+    @api.model
+    def _months(self, model, domain_fn, aggregates, months=12):
+        """A month-by-month series ending with the current month."""
+        month_start = fields.Date.context_today(self).replace(day=1)
+        out = []
+        for offset in range(-(months - 1), 1):
+            m_from = month_start + relativedelta(months=offset)
+            m_to = m_from + relativedelta(months=1)
+            domain = domain_fn(m_from, m_to)
+            gross, count = self._sums(model, domain, aggregates)
+            out.append({
+                'key': m_from.strftime('%Y-%m'),
+                'label': m_from.strftime('%b'),
+                'gross': gross, 'count': count,
+                'model': model, 'domain': domain,
+            })
+        return out
 
     @api.model
     def _group_amounts(self, model, base_domain, fname):
@@ -54,122 +175,542 @@ class AabaanCeoDashboard(models.AbstractModel):
         return out
 
     # ------------------------------------------------------------------
-    # payload
+    # shared domains
     # ------------------------------------------------------------------
 
     @api.model
-    def get_data(self):
-        env = self.env
-        company = env.company
-        today = fields.Date.context_today(self)
-        now = fields.Datetime.now()
-        today_s = fields.Date.to_string(today)
+    def _book_domain(self):
+        return [('state', '=', 'sale')]
 
-        Sale = env['sale.order']
-        book_domain = [('state', '=', 'sale')]
-        gross, net, count = self._sums(
-            'sale.order', book_domain,
-            ['amount_total:sum', 'amount_untaxed:sum', '__count'])
+    @api.model
+    def _invoice_domain(self):
+        return [('move_type', 'in', ('out_invoice', 'out_refund')),
+                ('state', '=', 'posted')]
 
+    @api.model
+    def _fsm_domain(self):
+        return [('project_id.is_fsm', '=', True)]
+
+    @api.model
+    def _ar_domain(self):
+        return [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'),
+                ('payment_state', 'in', ('not_paid', 'partial'))]
+
+    @api.model
+    def _payment_domain(self, start, end):
+        return [('payment_type', '=', 'inbound'),
+                ('state', 'in', ('posted', 'paid', 'in_process')),
+                ('date', '>=', fields.Date.to_string(start)),
+                ('date', '<', fields.Date.to_string(end))]
+
+    # ------------------------------------------------------------------
+    # entry point
+    # ------------------------------------------------------------------
+
+    @api.model
+    def get_data(self, tab='executive', period='this_month'):
+        if tab not in dict(TABS):
+            tab = 'executive'
+        if period not in dict(PERIODS):
+            period = 'this_month'
+        start, end, prev_start, prev_end = self._period_bounds(period)
+        company = self.env.company
         data = {
             'company': company.name,
-            'currency': company.currency_id.symbol or company.currency_id.name or 'AED',
-            'as_of': fields.Datetime.to_string(now),
-            'book': {
-                'label': 'Confirmed contracts',
-                'gross': gross, 'net': net, 'count': count,
-                'model': 'sale.order', 'domain': book_domain,
-            },
-            'quotes': {},
-            'service_lines': self._group_amounts('sale.order', book_domain, 'x_service_line'),
-            'emirates': self._group_amounts('sale.order', book_domain, 'x_emirate_regime'),
-            'industries': [],
-            'size_bands': [],
-            'renewals': [],
-            'renewal_months': [],
-            'visits': {'by_type': [], 'cards': []},
-            'pipeline': {},
-            'ar': {},
-            'customers': {},
+            'currency': (company.currency_id.symbol
+                         or company.currency_id.name or 'AED'),
+            'as_of': fields.Datetime.to_string(fields.Datetime.now()),
+            'tab': tab,
+            'period': period,
+            'period_label': dict(PERIODS)[period],
+            'tabs': [{'key': key, 'label': label} for key, label in TABS],
+            'periods': [{'key': key, 'label': label} for key, label in PERIODS],
+            'range': '%s → %s' % (start.strftime('%d %b %Y'),
+                                  (end - timedelta(days=1)).strftime('%d %b %Y')),
+        }
+        handler = getattr(self, '_tab_%s' % tab)
+        data.update(handler(start, end, prev_start, prev_end))
+        return data
+
+    # ------------------------------------------------------------------
+    # tab 1 — Executive Overview
+    # ------------------------------------------------------------------
+
+    def _tab_executive(self, start, end, prev_start, prev_end):
+        book = self._book_domain()
+        gross, net, count = self._sums(
+            'sale.order', book,
+            ['amount_total:sum', 'amount_untaxed:sum', '__count'])
+
+        tiles = [dict(self._metric(
+            'Contracted book', 'sale.order', book,
+            ['amount_total:sum', '__count']), net=net, hero=True)]
+        tiles.append(self._metric(
+            'Open quotations', 'sale.order',
+            [('state', 'in', ('draft', 'sent'))],
+            ['amount_total:sum', '__count']))
+        if 'crm.lead' in self.env:
+            tiles.append(self._metric(
+                'Sales pipeline', 'crm.lead',
+                ['|', ('stage_id', '=', False), ('stage_id.is_won', '=', False)],
+                ['expected_revenue:sum', '__count']))
+        ar_domain = self._ar_domain()
+        residual, ar_count = self._sums(
+            'account.move', ar_domain, ['amount_residual:sum', '__count'])
+        overdue_domain = ar_domain + [
+            ('invoice_date_due', '<', fields.Date.to_string(
+                fields.Date.context_today(self)))]
+        overdue, overdue_count = self._sums(
+            'account.move', overdue_domain, ['amount_residual:sum', '__count'])
+        tiles.append({
+            'label': 'Receivables outstanding', 'gross': residual,
+            'count': ar_count, 'model': 'account.move', 'domain': ar_domain,
+            'sub_gross': overdue, 'sub_count': overdue_count,
+            'sub_label': 'overdue', 'sub_domain': overdue_domain,
+        })
+        tiles.append(self._metric(
+            'Customers', 'res.partner', [('customer_rank', '>', 0)]))
+
+        # period block, each figure beside the same-length previous window
+        def period_pair(label, model, domain_fn, aggregates):
+            cur = domain_fn(start, end)
+            prv = domain_fn(prev_start, prev_end)
+            c_gross, c_count = self._sums(model, cur, aggregates)
+            p_gross, p_count = self._sums(model, prv, aggregates)
+            return {
+                'label': label, 'model': model, 'domain': cur,
+                'gross': c_gross, 'count': c_count,
+                'prev_gross': p_gross, 'prev_count': p_count,
+                'delta': self._delta(c_gross, p_gross),
+            }
+
+        period_block = [
+            period_pair(
+                'New contracts signed', 'sale.order',
+                lambda s, e: [('state', '=', 'sale'),
+                              ('date_order', '>=', fields.Date.to_string(s)),
+                              ('date_order', '<', fields.Date.to_string(e))],
+                ['amount_total:sum', '__count']),
+            period_pair(
+                'Invoiced, net of VAT', 'account.move',
+                lambda s, e: self._invoice_domain() + [
+                    ('invoice_date', '>=', fields.Date.to_string(s)),
+                    ('invoice_date', '<', fields.Date.to_string(e))],
+                ['amount_untaxed_signed:sum', '__count']),
+            period_pair(
+                'Cash collected', 'account.payment',
+                lambda s, e: self._payment_domain(s, e),
+                ['amount:sum', '__count']),
+        ]
+        if 'crm.lead' in self.env:
+            period_block.append(period_pair(
+                'New leads', 'crm.lead',
+                lambda s, e: [('create_date', '>=', fields.Date.to_string(s)),
+                              ('create_date', '<', fields.Date.to_string(e))],
+                ['expected_revenue:sum', '__count']))
+
+        top_customers = []
+        rows = self.env['sale.order']._read_group(
+            book, ['partner_id'], ['amount_total:sum', '__count'])
+        rows.sort(key=lambda row: -(row[1] or 0.0))
+        for partner, total, cnt in rows[:8]:
+            top_customers.append({
+                'key': str(partner.id), 'label': partner.name,
+                'gross': total or 0.0, 'count': cnt,
+                'share': self._pct(total or 0.0, gross) or 0.0,
+                'model': 'sale.order',
+                'domain': book + [('partner_id', '=', partner.id)],
+            })
+
+        return {
+            'tiles': tiles,
+            'period_block': period_block,
+            'revenue_months': self._months(
+                'account.move',
+                lambda s, e: self._invoice_domain() + [
+                    ('invoice_date', '>=', fields.Date.to_string(s)),
+                    ('invoice_date', '<', fields.Date.to_string(e))],
+                ['amount_untaxed_signed:sum', '__count']),
+            'collections_months': self._months(
+                'account.payment',
+                lambda s, e: self._payment_domain(s, e),
+                ['amount:sum', '__count']),
+            'top_customers': top_customers,
+            'service_lines': self._group_amounts(
+                'sale.order', book, 'x_service_line'),
+            'emirates': self._group_amounts(
+                'sale.order', book, 'x_emirate_regime'),
         }
 
-        q_domain = [('state', 'in', ('draft', 'sent'))]
-        q_gross, q_count = self._sums('sale.order', q_domain, ['amount_total:sum', '__count'])
-        data['quotes'] = {'label': 'Open quotations', 'gross': q_gross, 'count': q_count,
-                          'model': 'sale.order', 'domain': q_domain}
+    # ------------------------------------------------------------------
+    # tab 2 — Field Operations
+    # ------------------------------------------------------------------
 
-        # renewals — sale_subscription's end_date
-        if 'end_date' in Sale._fields:
-            in90_s = fields.Date.to_string(today + timedelta(days=90))
+    def _tab_field(self, start, end, prev_start, prev_end):
+        Task = self.env['project.task']
+        fsm = self._fsm_domain()
+        open_domain = fsm + [('stage_id.fold', '=', False)]
+        now = fields.Datetime.now()
+        now_s = fields.Datetime.to_string(now)
+        has_completed = 'visit_completed_at' in Task._fields
+        has_followup = 'followup_task_id' in Task._fields
+        has_sla = 'sla_escalated' in Task._fields
+        has_planned = 'planned_date_begin' in Task._fields
 
-            def bucket(key, label, extra, status=None):
-                domain = book_domain + extra
-                total, cnt = self._sums('sale.order', domain, ['amount_total:sum', '__count'])
-                data['renewals'].append({
-                    'key': key, 'label': label, 'gross': total, 'count': cnt,
-                    'status': status, 'model': 'sale.order', 'domain': domain,
+        start_s = fields.Datetime.to_string(
+            fields.Datetime.to_datetime(start))
+        end_s = fields.Datetime.to_string(fields.Datetime.to_datetime(end))
+
+        def in_period(field):
+            return [(field, '>=', start_s), (field, '<', end_s)]
+
+        kpis, notes = [], []
+
+        # Visits completed in the period — the delivery volume.
+        completed_domain = prev_completed = None
+        if has_completed:
+            completed_domain = fsm + [('visit_completed_at', '!=', False)] \
+                + in_period('visit_completed_at')
+            prev_completed = fsm + [('visit_completed_at', '!=', False)] + [
+                ('visit_completed_at', '>=', fields.Datetime.to_string(
+                    fields.Datetime.to_datetime(prev_start))),
+                ('visit_completed_at', '<', start_s)]
+            done = Task.search_count(completed_domain)
+            prev_done = Task.search_count(prev_completed)
+            kpis.append({
+                'label': 'Visits completed', 'count': done,
+                'delta': self._delta(done, prev_done),
+                'prev_count': prev_done,
+                'model': 'project.task', 'domain': completed_domain,
+                'hero': True,
+            })
+
+            # First-time fix: a completed visit that did NOT need a
+            # follow-up. The follow-up link is written by the field-ops
+            # completion flow, so this is a real outcome, not a proxy.
+            if has_followup:
+                needed = Task.search_count(
+                    completed_domain + [('followup_task_id', '!=', False)])
+                kpis.append({
+                    'label': 'First-time fix rate',
+                    'pct': self._pct(done - needed, done),
+                    'count': done - needed, 'of': done,
+                    'model': 'project.task',
+                    'domain': completed_domain + [
+                        ('followup_task_id', '=', False)],
+                    'note': '%s of %s completed visits closed without a '
+                            'follow-up' % (done - needed, done),
                 })
+            else:
+                notes.append('First-time fix rate needs the field-ops '
+                             'completion flow (aabaan_field_ops).')
 
-            bucket('past', 'Past end-of-term',
-                   [('end_date', '!=', False), ('end_date', '<', today_s)], 'critical')
-            bucket('next90', 'Next 90 days',
-                   [('end_date', '>=', today_s), ('end_date', '<=', in90_s)], 'warning')
-            bucket('later', 'Beyond 90 days', [('end_date', '>', in90_s)])
-            bucket('open_ended', 'No end date set', [('end_date', '=', False)])
-
-            # month-by-month renewal timeline: everything before this month is
-            # "overdue"; then the next 12 calendar months; then one tail bucket.
-            month_start = today.replace(day=1)
-            horizon = month_start + relativedelta(months=12)
-            past_domain = book_domain + [('end_date', '!=', False),
-                                         ('end_date', '<', fields.Date.to_string(month_start))]
-            p_total, p_cnt = self._sums('sale.order', past_domain,
-                                        ['amount_total:sum', '__count'])
-            data['renewal_months'].append({
-                'key': 'past', 'label': 'Overdue', 'gross': p_total, 'count': p_cnt,
-                'status': 'critical', 'model': 'sale.order', 'domain': past_domain,
-            })
-            for offset in range(12):
-                m_from = month_start + relativedelta(months=offset)
-                m_to = month_start + relativedelta(months=offset + 1)
-                m_domain = book_domain + [
-                    ('end_date', '>=', fields.Date.to_string(m_from)),
-                    ('end_date', '<', fields.Date.to_string(m_to))]
-                m_total, m_cnt = self._sums('sale.order', m_domain,
-                                            ['amount_total:sum', '__count'])
-                data['renewal_months'].append({
-                    'key': m_from.strftime('%Y-%m'), 'label': m_from.strftime('%b'),
-                    'gross': m_total, 'count': m_cnt,
-                    'model': 'sale.order', 'domain': m_domain,
+            # Average time on site. The duration field is computed, not
+            # stored, so it cannot be summed in SQL — the raw check-in /
+            # check-out pairs are read back and averaged here, capped. The
+            # same recordset is reused for the per-technician hours below,
+            # so this is one query, not two.
+            sample = Task.search(
+                completed_domain + [('visit_started_at', '!=', False)],
+                limit=DURATION_SAMPLE_CAP)
+            spans = [
+                (task.visit_completed_at - task.visit_started_at)
+                .total_seconds() / 3600.0
+                for task in sample
+                if task.visit_completed_at and task.visit_started_at]
+            if spans:
+                kpis.append({
+                    'label': 'Average time on site',
+                    'value': '%.1f h' % (sum(spans) / len(spans)),
+                    'note': 'across %s visits with a check-in and check-out'
+                            % len(spans),
                 })
-            tail_domain = book_domain + [('end_date', '>=', fields.Date.to_string(horizon))]
-            t_total, t_cnt = self._sums('sale.order', tail_domain,
-                                        ['amount_total:sum', '__count'])
-            data['renewal_months'].append({
-                'key': 'beyond', 'label': 'Later', 'gross': t_total, 'count': t_cnt,
-                'model': 'sale.order', 'domain': tail_domain,
+                if len(sample) == DURATION_SAMPLE_CAP:
+                    notes.append(
+                        'Time-on-site figures sampled from the most recent '
+                        '%s visits.' % DURATION_SAMPLE_CAP)
+        else:
+            notes.append('Visit completion metrics need aabaan_field_ops.')
+
+        # SLA: escalations raised against visits planned in the period.
+        if has_sla and has_planned:
+            planned_domain = fsm + in_period('planned_date_begin')
+            planned = Task.search_count(planned_domain)
+            escalated = Task.search_count(
+                planned_domain + [('sla_escalated', '=', True)])
+            kpis.append({
+                'label': 'SLA clean',
+                'pct': self._pct(planned - escalated, planned),
+                'count': planned - escalated, 'of': planned,
+                'model': 'project.task',
+                'domain': planned_domain + [('sla_escalated', '=', True)],
+                'note': '%s of %s visits planned in this window were never '
+                        'escalated' % (planned - escalated, planned),
+                'invert': True,
             })
 
-        # book by client industry (res.partner.industry_id)
-        industry_map = {}
-        for partner, total, count in Sale._read_group(
-                book_domain, ['partner_id'], ['amount_total:sum', '__count']):
-            industry = partner.industry_id
-            entry = industry_map.setdefault(industry.id or 0, {
-                'key': str(industry.id or 'none'),
-                'label': industry.name or 'Industry not set',
-                'gross': 0.0, 'count': 0, 'partners': 0,
-                'model': 'sale.order',
-                'domain': book_domain + [
-                    ('partner_id.industry_id', '=', industry.id or False)],
-            })
-            entry['gross'] += total or 0.0
-            entry['count'] += count
-            entry['partners'] += 1
-        data['industries'] = sorted(
-            industry_map.values(), key=lambda item: -item['gross'])
+        # Live attention cards — always "as of now", never period-bound,
+        # because an overdue visit is overdue today regardless of filter.
+        cards = []
+        if has_planned:
+            cards.append(self._metric(
+                'Past planned date, still open', 'project.task',
+                open_domain + [('planned_date_begin', '<', now_s)],
+                status='critical'))
+            cards.append(self._metric(
+                'Scheduled, next 7 days', 'project.task',
+                open_domain + [
+                    ('planned_date_begin', '>=', now_s),
+                    ('planned_date_begin', '<=', fields.Datetime.to_string(
+                        now + timedelta(days=7)))]))
+            cards.append(self._metric(
+                'Unassigned, next 7 days', 'project.task',
+                open_domain + [
+                    ('user_ids', '=', False),
+                    ('planned_date_begin', '>=', now_s),
+                    ('planned_date_begin', '<=', fields.Datetime.to_string(
+                        now + timedelta(days=7)))],
+                status='warning'))
+        if 'x_sla_due' in Task._fields:
+            cards.append(self._metric(
+                'SLA deadline passed, still open', 'project.task',
+                open_domain + [('x_sla_due', '<', now_s)], status='critical'))
+        if has_sla:
+            cards.append(self._metric(
+                'Escalated and still open', 'project.task',
+                open_domain + [('sla_escalated', '=', True)],
+                status='critical'))
 
-        # contract size mix
+        # Technicians — visits completed and real hours on site.
+        # Deliberately no "utilisation %": that needs each technician's
+        # contracted working hours, which this database does not reliably
+        # carry, and a percentage against an assumed 8-hour day would be
+        # an invented number.
+        technicians = []
+        if has_completed:
+            hours_by_user = {}
+            for task in sample:
+                if not (task.visit_started_at and task.visit_completed_at):
+                    continue
+                span = (task.visit_completed_at - task.visit_started_at)\
+                    .total_seconds() / 3600.0
+                for user in task.user_ids:
+                    hours_by_user[user.id] = hours_by_user.get(user.id, 0.0) + span
+            for user, cnt in Task._read_group(
+                    completed_domain, ['user_ids'], ['__count']):
+                if not user:
+                    continue
+                technicians.append({
+                    'key': str(user.id), 'label': user.name, 'count': cnt,
+                    'hours': round(hours_by_user.get(user.id, 0.0), 1),
+                    'open': Task.search_count(
+                        open_domain + [('user_ids', 'in', user.id)]),
+                    'model': 'project.task',
+                    'domain': completed_domain + [('user_ids', 'in', user.id)],
+                })
+            technicians.sort(key=lambda item: -item['count'])
+            technicians = technicians[:10]
+
+        # Visit funnel by stage — where the open work actually sits.
+        stages = []
+        for stage, cnt in Task._read_group(open_domain, ['stage_id'], ['__count']):
+            stages.append({
+                'key': str(stage.id or 'none'),
+                'label': stage.name or 'No stage', 'count': cnt,
+                'model': 'project.task',
+                'domain': open_domain + [('stage_id', '=', stage.id or False)],
+            })
+        stages.sort(key=lambda item: -item['count'])
+
+        by_type = []
+        if 'x_visit_type' in Task._fields:
+            labels = self._selection_labels('project.task', 'x_visit_type')
+            period_domain = (completed_domain if has_completed else fsm)
+            for value, cnt in Task._read_group(
+                    period_domain, ['x_visit_type'], ['__count']):
+                by_type.append({
+                    'key': str(value or 'none'),
+                    'label': labels.get(value, value or 'Untyped'),
+                    'count': cnt, 'model': 'project.task',
+                    'domain': period_domain + [('x_visit_type', '=', value)],
+                })
+            by_type.sort(key=lambda item: -item['count'])
+
+        emirates = []
+        Sale = self.env['sale.order']
+        if 'x_emirate_regime' in Sale._fields and 'sale_order_id' in Task._fields:
+            labels = self._selection_labels('sale.order', 'x_emirate_regime')
+            for value, label in labels.items():
+                domain = fsm + [('sale_order_id.x_emirate_regime', '=', value)]
+                cnt = Task.search_count(domain)
+                if not cnt:
+                    continue
+                emirates.append({
+                    'key': str(value), 'label': label, 'count': cnt,
+                    'open': Task.search_count(
+                        open_domain
+                        + [('sale_order_id.x_emirate_regime', '=', value)]),
+                    'model': 'project.task', 'domain': domain,
+                })
+            emirates.sort(key=lambda item: -item['count'])
+
+        return {
+            'kpis': kpis, 'cards': cards, 'technicians': technicians,
+            'stages': stages, 'by_type': by_type, 'emirates': emirates,
+            'notes': notes,
+        }
+
+    # ------------------------------------------------------------------
+    # tab 3 — Sales & CRM
+    # ------------------------------------------------------------------
+
+    def _tab_sales(self, start, end, prev_start, prev_end):
+        Sale = self.env['sale.order']
+        start_s = fields.Date.to_string(start)
+        end_s = fields.Date.to_string(end)
+        prev_start_s = fields.Date.to_string(prev_start)
+
+        kpis, notes = [], []
+
+        signed_domain = [('state', '=', 'sale'),
+                         ('date_order', '>=', start_s),
+                         ('date_order', '<', end_s)]
+        prev_signed = [('state', '=', 'sale'),
+                       ('date_order', '>=', prev_start_s),
+                       ('date_order', '<', start_s)]
+        signed_gross, signed_count = self._sums(
+            'sale.order', signed_domain, ['amount_total:sum', '__count'])
+        prev_gross, prev_count = self._sums(
+            'sale.order', prev_signed, ['amount_total:sum', '__count'])
+        kpis.append({
+            'label': 'Contracts signed', 'gross': signed_gross,
+            'count': signed_count, 'prev_gross': prev_gross,
+            'delta': self._delta(signed_gross, prev_gross),
+            'model': 'sale.order', 'domain': signed_domain, 'hero': True,
+        })
+
+        quote_domain = [('state', 'in', ('draft', 'sent'))]
+        q_gross, q_count = self._sums(
+            'sale.order', quote_domain, ['amount_total:sum', '__count'])
+        kpis.append({
+            'label': 'Open quotations', 'gross': q_gross, 'count': q_count,
+            'model': 'sale.order', 'domain': quote_domain,
+        })
+
+        # Quotation conversion: of the quotations raised in this window,
+        # how many are now confirmed. Both sides counted on the same set
+        # of records, so the ratio is real rather than two unrelated totals.
+        raised = [('date_order', '>=', start_s), ('date_order', '<', end_s)]
+        raised_count = Sale.search_count(raised)
+        converted = Sale.search_count(raised + [('state', '=', 'sale')])
+        kpis.append({
+            'label': 'Quotation conversion',
+            'pct': self._pct(converted, raised_count),
+            'count': converted, 'of': raised_count,
+            'model': 'sale.order', 'domain': raised + [('state', '=', 'sale')],
+            'note': '%s of %s quotations raised in this window are confirmed'
+                    % (converted, raised_count),
+        })
+
+        pipeline, sources, lost_reasons = [], [], []
+        if 'crm.lead' in self.env:
+            Lead = self.env['crm.lead']
+            open_leads = ['|', ('stage_id', '=', False),
+                          ('stage_id.is_won', '=', False)]
+            p_gross, p_count = self._sums(
+                'crm.lead', open_leads, ['expected_revenue:sum', '__count'])
+            kpis.append({
+                'label': 'Open pipeline', 'gross': p_gross, 'count': p_count,
+                'model': 'crm.lead', 'domain': open_leads,
+            })
+
+            # Win rate over decided leads only. Lost leads are archived in
+            # Odoo, so counting them needs active_test disabled — without
+            # that the rate would silently read 100%.
+            closed = [('create_date', '>=', fields.Datetime.to_string(
+                fields.Datetime.to_datetime(start))),
+                ('create_date', '<', fields.Datetime.to_string(
+                    fields.Datetime.to_datetime(end)))]
+            AllLeads = Lead.with_context(active_test=False)
+            won = AllLeads.search_count(
+                closed + [('active', '=', True), ('stage_id.is_won', '=', True)])
+            lost = AllLeads.search_count(closed + [('active', '=', False)])
+            decided = won + lost
+            kpis.append({
+                'label': 'Win rate',
+                'pct': self._pct(won, decided),
+                'count': won, 'of': decided,
+                'model': 'crm.lead',
+                'domain': closed + [('stage_id.is_won', '=', True)],
+                'note': ('%s won of %s decided leads created in this window'
+                         % (won, decided)) if decided else
+                        'No leads created in this window have been decided yet',
+            })
+
+            for stage, total, cnt in Lead._read_group(
+                    open_leads, ['stage_id'],
+                    ['expected_revenue:sum', '__count']):
+                pipeline.append({
+                    'key': str(stage.id or 'none'),
+                    'label': stage.name or 'No stage',
+                    'gross': total or 0.0, 'count': cnt,
+                    'sequence': stage.sequence or 0,
+                    'model': 'crm.lead',
+                    'domain': open_leads + [('stage_id', '=', stage.id or False)],
+                })
+            pipeline.sort(key=lambda item: item['sequence'])
+
+            if 'source_id' in Lead._fields:
+                for source, total, cnt in Lead._read_group(
+                        closed, ['source_id'],
+                        ['expected_revenue:sum', '__count']):
+                    sources.append({
+                        'key': str(source.id or 'none'),
+                        'label': source.name or 'Source not set',
+                        'gross': total or 0.0, 'count': cnt,
+                        'model': 'crm.lead',
+                        'domain': closed + [('source_id', '=', source.id or False)],
+                    })
+                sources.sort(key=lambda item: -item['count'])
+                sources = sources[:8]
+
+            if 'lost_reason_id' in Lead._fields:
+                for reason, cnt in AllLeads._read_group(
+                        closed + [('active', '=', False)],
+                        ['lost_reason_id'], ['__count']):
+                    lost_reasons.append({
+                        'key': str(reason.id or 'none'),
+                        'label': reason.name or 'Reason not recorded',
+                        'count': cnt, 'model': 'crm.lead',
+                        'domain': closed + [('active', '=', False),
+                                            ('lost_reason_id', '=', reason.id or False)],
+                    })
+                lost_reasons.sort(key=lambda item: -item['count'])
+                lost_reasons = lost_reasons[:6]
+        else:
+            notes.append('Pipeline, win rate and lead sources need the CRM app.')
+
+        return {
+            'kpis': kpis,
+            'pipeline': pipeline,
+            'sources': sources,
+            'lost_reasons': lost_reasons,
+            'signed_months': self._months(
+                'sale.order',
+                lambda s, e: [('state', '=', 'sale'),
+                              ('date_order', '>=', fields.Date.to_string(s)),
+                              ('date_order', '<', fields.Date.to_string(e))],
+                ['amount_total:sum', '__count']),
+            'service_lines': self._group_amounts(
+                'sale.order', self._book_domain(), 'x_service_line'),
+            'size_bands': self._size_bands(),
+            'notes': notes,
+        }
+
+    @api.model
+    def _size_bands(self):
+        book = self._book_domain()
+        out = []
         for key, label, extra in (
                 ('lt500', 'Below 500', [('amount_total', '<', 500)]),
                 ('b500', '500 – 999',
@@ -179,204 +720,330 @@ class AabaanCeoDashboard(models.AbstractModel):
                 ('b5k', '5,000 – 19,999',
                  [('amount_total', '>=', 5000), ('amount_total', '<', 20000)]),
                 ('b20k', '20,000 and above', [('amount_total', '>=', 20000)])):
-            domain = book_domain + extra
-            b_total, b_cnt = self._sums('sale.order', domain,
-                                        ['amount_total:sum', '__count'])
-            data['size_bands'].append({
-                'key': key, 'label': label, 'gross': b_total, 'count': b_cnt,
-                'model': 'sale.order', 'domain': domain,
-            })
+            domain = book + extra
+            gross, cnt = self._sums(
+                'sale.order', domain, ['amount_total:sum', '__count'])
+            out.append({'key': key, 'label': label, 'gross': gross,
+                        'count': cnt, 'model': 'sale.order', 'domain': domain})
+        return out
 
-        # Dubai LO 11 F&B premises flag (from aabaan_visit_schedule)
-        if 'is_fnb_premises' in Sale._fields:
-            fnb_domain = book_domain + [('is_fnb_premises', '=', True)]
-            data['fnb'] = {
-                'label': 'F&B premises (Dubai LO 11)',
-                'count': Sale.search_count(fnb_domain),
-                'model': 'sale.order', 'domain': fnb_domain,
-            }
+    # ------------------------------------------------------------------
+    # tab 4 — Finance
+    # ------------------------------------------------------------------
 
-        # field service visits
-        Task = env['project.task']
-        fsm_domain = [('project_id.is_fsm', '=', True)]
-        if 'x_visit_type' in Task._fields:
-            labels = self._selection_labels('project.task', 'x_visit_type')
-            for value, cnt in Task._read_group(fsm_domain, ['x_visit_type'], ['__count']):
-                data['visits']['by_type'].append({
-                    'key': str(value or 'none'),
-                    'label': labels.get(value, value or 'Untyped'),
-                    'count': cnt, 'model': 'project.task',
-                    'domain': fsm_domain + [('x_visit_type', '=', value)],
-                })
-        open_domain = fsm_domain + [('stage_id.fold', '=', False)]
-        now_s = fields.Datetime.to_string(now)
+    def _tab_finance(self, start, end, prev_start, prev_end):
+        Move = self.env['account.move']
+        today = fields.Date.context_today(self)
+        today_s = fields.Date.to_string(today)
+        ar_domain = self._ar_domain()
+        start_s = fields.Date.to_string(start)
+        end_s = fields.Date.to_string(end)
 
-        def vcard(key, label, domain, status=None):
-            data['visits']['cards'].append({
-                'key': key, 'label': label, 'count': Task.search_count(domain),
-                'status': status, 'model': 'project.task', 'domain': domain,
-            })
-
-        if 'planned_date_begin' in Task._fields:
-            in30_s = fields.Datetime.to_string(now + timedelta(days=30))
-            vcard('next30', 'Visits scheduled, next 30 days',
-                  open_domain + [('planned_date_begin', '>=', now_s),
-                                 ('planned_date_begin', '<=', in30_s)])
-            vcard('overdue', 'Past planned date, still open',
-                  open_domain + [('planned_date_begin', '<', now_s)], 'critical')
-        if 'x_sla_due' in Task._fields:
-            vcard('sla_breach', 'SLA deadline passed, still open',
-                  open_domain + [('x_sla_due', '<', now_s)], 'critical')
-
-        # CRM pipeline (active, not won)
-        if 'crm.lead' in env:
-            lead_domain = ['|', ('stage_id', '=', False), ('stage_id.is_won', '=', False)]
-            expected, lead_count = self._sums(
-                'crm.lead', lead_domain, ['expected_revenue:sum', '__count'])
-            data['pipeline'] = {'label': 'Open pipeline', 'expected': expected,
-                                'count': lead_count, 'model': 'crm.lead',
-                                'domain': lead_domain}
-
-        # receivables (posted customer invoices, not fully paid)
-        ar_domain = [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'),
-                     ('payment_state', 'in', ('not_paid', 'partial'))]
         residual, ar_count = self._sums(
             'account.move', ar_domain, ['amount_residual:sum', '__count'])
-        overdue_domain = ar_domain + [('invoice_date_due', '<', today_s)]
-        overdue, overdue_count = self._sums(
-            'account.move', overdue_domain, ['amount_residual:sum', '__count'])
-        data['ar'] = {
-            'label': 'Receivables outstanding', 'residual': residual, 'count': ar_count,
-            'overdue': overdue, 'overdue_count': overdue_count,
-            'model': 'account.move', 'domain': ar_domain, 'overdue_domain': overdue_domain,
-        }
 
-        data['customers'] = {
-            'label': 'Customers', 'count': env['res.partner'].search_count(
-                [('customer_rank', '>', 0)]),
-            'model': 'res.partner', 'domain': [('customer_rank', '>', 0)],
-        }
+        invoiced_domain = self._invoice_domain() + [
+            ('invoice_date', '>=', start_s), ('invoice_date', '<', end_s)]
+        invoiced, invoiced_count = self._sums(
+            'account.move', invoiced_domain,
+            ['amount_untaxed_signed:sum', '__count'])
+        collected_domain = self._payment_domain(start, end)
+        collected, collected_count = self._sums(
+            'account.payment', collected_domain, ['amount:sum', '__count'])
 
-        # revenue trend — posted customer invoices net of VAT, by month
-        inv_base = [('move_type', 'in', ('out_invoice', 'out_refund')),
-                    ('state', '=', 'posted')]
-        trend_start = today.replace(day=1)
-        data['revenue_months'] = []
-        for offset in range(-11, 1):
-            m_from = trend_start + relativedelta(months=offset)
-            m_to = trend_start + relativedelta(months=offset + 1)
-            m_domain = inv_base + [
-                ('invoice_date', '>=', fields.Date.to_string(m_from)),
-                ('invoice_date', '<', fields.Date.to_string(m_to))]
-            m_total, m_cnt = self._sums(
-                'account.move', m_domain,
-                ['amount_untaxed_signed:sum', '__count'])
-            data['revenue_months'].append({
-                'key': m_from.strftime('%Y-%m'),
-                'label': m_from.strftime('%b'),
-                'gross': m_total, 'count': m_cnt,
-                'model': 'account.move', 'domain': m_domain,
+        kpis = [
+            {'label': 'Receivables outstanding', 'gross': residual,
+             'count': ar_count, 'model': 'account.move', 'domain': ar_domain,
+             'hero': True},
+            {'label': 'Invoiced, net of VAT', 'gross': invoiced,
+             'count': invoiced_count, 'model': 'account.move',
+             'domain': invoiced_domain},
+            {'label': 'Cash collected', 'gross': collected,
+             'count': collected_count, 'model': 'account.payment',
+             'domain': collected_domain},
+        ]
+
+        # Collection efficiency: cash collected against value invoiced in
+        # the same window. Above 100% means older invoices were settled
+        # too — which is why it is labelled as a ratio, not "% of invoices
+        # paid".
+        kpis.append({
+            'label': 'Collection ratio',
+            'pct': self._pct(collected, invoiced),
+            'note': 'cash collected against value invoiced in this window; '
+                    'above 100% means older invoices settled too',
+        })
+
+        # DSO — the standard receivables-days measure, with its inputs
+        # named on screen so the number can be checked by hand.
+        days = (end - start).days or 1
+        dso = round(residual / invoiced * days, 1) if invoiced else None
+        kpis.append({
+            'label': 'Days sales outstanding',
+            'value': ('%.1f days' % dso) if dso is not None else None,
+            'note': 'receivables %s ÷ invoiced %s × %s days in window'
+                    % (round(residual), round(invoiced), days),
+        })
+
+        # Ageing, measured from the due date. "Not yet due" is kept
+        # separate from the overdue bands so the two are never conflated.
+        ageing = []
+        bands = [
+            ('current', 'Not yet due', [('invoice_date_due', '>=', today_s)], None),
+            ('d30', '1 – 30 days', [
+                ('invoice_date_due', '<', today_s),
+                ('invoice_date_due', '>=', fields.Date.to_string(
+                    today - timedelta(days=30)))], 'warning'),
+            ('d60', '31 – 60 days', [
+                ('invoice_date_due', '<', fields.Date.to_string(
+                    today - timedelta(days=30))),
+                ('invoice_date_due', '>=', fields.Date.to_string(
+                    today - timedelta(days=60)))], 'warning'),
+            ('d90', '61 – 90 days', [
+                ('invoice_date_due', '<', fields.Date.to_string(
+                    today - timedelta(days=60))),
+                ('invoice_date_due', '>=', fields.Date.to_string(
+                    today - timedelta(days=90)))], 'critical'),
+            ('d90p', 'Over 90 days', [
+                ('invoice_date_due', '<', fields.Date.to_string(
+                    today - timedelta(days=90)))], 'critical'),
+        ]
+        for key, label, extra, status in bands:
+            domain = ar_domain + extra
+            gross, cnt = self._sums(
+                'account.move', domain, ['amount_residual:sum', '__count'])
+            ageing.append({
+                'key': key, 'label': label, 'gross': gross, 'count': cnt,
+                'status': status, 'share': self._pct(gross, residual) or 0.0,
+                'model': 'account.move', 'domain': domain,
             })
 
-        # cash collected — inbound posted payments, by month
-        def collected(start, end):
-            domain = [
-                ('payment_type', '=', 'inbound'),
-                ('state', 'in', ('posted', 'paid', 'in_process')),
-                ('date', '>=', fields.Date.to_string(start)),
-                ('date', '<', fields.Date.to_string(end))]
-            amount, count = self._sums(
-                'account.payment', domain, ['amount:sum', '__count'])
-            return {'label': 'Cash collected', 'gross': amount, 'count': count,
-                    'model': 'account.payment', 'domain': domain}
-
-        data['collections_months'] = []
-        for offset in range(-11, 1):
-            m_from = trend_start + relativedelta(months=offset)
-            m_to = trend_start + relativedelta(months=offset + 1)
-            entry = collected(m_from, m_to)
-            entry.update(key=m_from.strftime('%Y-%m'),
-                         label=m_from.strftime('%b'))
-            data['collections_months'].append(entry)
-
-        # this month vs last month — both real sums shown side by side
-        def period_metrics(offset):
-            start = trend_start + relativedelta(months=offset)
-            end = start + relativedelta(months=1)
-            s, e = fields.Date.to_string(start), fields.Date.to_string(end)
-            out = {}
-            nb_domain = [('state', '=', 'sale'),
-                         ('date_order', '>=', s), ('date_order', '<', e)]
-            g, c = self._sums('sale.order', nb_domain,
-                              ['amount_total:sum', '__count'])
-            out['new_book'] = {'label': 'New contracts', 'gross': g, 'count': c,
-                               'model': 'sale.order', 'domain': nb_domain}
-            iv_domain = inv_base + [('invoice_date', '>=', s),
-                                    ('invoice_date', '<', e)]
-            g, c = self._sums('account.move', iv_domain,
-                              ['amount_untaxed_signed:sum', '__count'])
-            out['invoiced'] = {'label': 'Invoiced (net)', 'gross': g, 'count': c,
-                               'model': 'account.move', 'domain': iv_domain}
-            out['collected'] = collected(start, end)
-            if 'crm.lead' in env:
-                l_domain = [('create_date', '>=', s), ('create_date', '<', e)]
-                out['leads'] = {'label': 'New leads',
-                                'count': env['crm.lead'].search_count(l_domain),
-                                'model': 'crm.lead', 'domain': l_domain}
-            return out
-
-        data['this_month'] = period_metrics(0)
-        data['last_month'] = period_metrics(-1)
-
-        # top customers — concentration of the confirmed book
-        data['top_customers'] = []
-        rows = Sale._read_group(
-            book_domain, ['partner_id'], ['amount_total:sum', '__count'])
-        rows.sort(key=lambda row: -(row[1] or 0.0))
-        for partner, total, cnt in rows[:8]:
-            data['top_customers'].append({
-                'key': str(partner.id), 'label': partner.name,
-                'gross': total or 0.0, 'count': cnt,
-                'share': round(100.0 * (total or 0.0) / gross, 1) if gross else 0.0,
-                'model': 'sale.order',
-                'domain': book_domain + [('partner_id', '=', partner.id)],
-            })
-
-        # top technicians — completed visits (field ops stamps completion)
-        data['technicians'] = []
-        done_domain = fsm_domain + (
-            [('visit_completed_at', '!=', False)]
-            if 'visit_completed_at' in Task._fields
-            else [('stage_id.fold', '=', True)])
-        for user, cnt in Task._read_group(done_domain, ['user_ids'], ['__count']):
-            if not user:
-                continue
-            data['technicians'].append({
-                'key': str(user.id), 'label': user.name, 'count': cnt,
-                'open': Task.search_count(
-                    open_domain + [('user_ids', 'in', user.id)]),
-                'model': 'project.task',
-                'domain': done_domain + [('user_ids', 'in', user.id)],
-            })
-        data['technicians'].sort(key=lambda item: -item['count'])
-        data['technicians'] = data['technicians'][:8]
-
-        # visit workload by emirate (through the contract's emirate regime)
-        data['visit_emirates'] = []
-        if 'x_emirate_regime' in Sale._fields and 'sale_order_id' in Task._fields:
-            labels = self._selection_labels('sale.order', 'x_emirate_regime')
-            for value, label in labels.items():
-                domain = fsm_domain + [
-                    ('sale_order_id.x_emirate_regime', '=', value)]
-                cnt = Task.search_count(domain)
-                if not cnt:
+        # Recovery buckets are a stored field on this database (finance
+        # core), so they group directly.
+        recovery = []
+        if 'recovery_bucket' in Move._fields:
+            labels = self._selection_labels('account.move', 'recovery_bucket')
+            for value, total, cnt in Move._read_group(
+                    ar_domain, ['recovery_bucket'],
+                    ['amount_residual:sum', '__count']):
+                if not value:
                     continue
-                data['visit_emirates'].append({
-                    'key': str(value), 'label': label, 'count': cnt,
-                    'open': Task.search_count(
-                        open_domain
-                        + [('sale_order_id.x_emirate_regime', '=', value)]),
-                    'model': 'project.task', 'domain': domain,
+                recovery.append({
+                    'key': str(value), 'label': labels.get(value, value),
+                    'gross': total or 0.0, 'count': cnt,
+                    'status': 'critical' if value == 'previous' else None,
+                    'model': 'account.move',
+                    'domain': ar_domain + [('recovery_bucket', '=', value)],
                 })
-            data['visit_emirates'].sort(key=lambda item: -item['count'])
-        return data
+
+        top_debtors = []
+        rows = Move._read_group(
+            ar_domain, ['partner_id'], ['amount_residual:sum', '__count'])
+        rows.sort(key=lambda row: -(row[1] or 0.0))
+        for partner, total, cnt in rows[:10]:
+            overdue_domain = ar_domain + [
+                ('partner_id', '=', partner.id),
+                ('invoice_date_due', '<', today_s)]
+            overdue = self._sums(
+                'account.move', overdue_domain, ['amount_residual:sum'])[0]
+            top_debtors.append({
+                'key': str(partner.id), 'label': partner.name,
+                'gross': total or 0.0, 'count': cnt, 'overdue': overdue,
+                'model': 'account.move',
+                'domain': ar_domain + [('partner_id', '=', partner.id)],
+            })
+
+        services = []
+        if 'aabaan_services' in Move._fields:
+            for value, total, cnt in Move._read_group(
+                    ar_domain, ['aabaan_services'],
+                    ['amount_residual:sum', '__count']):
+                services.append({
+                    'key': str(value or 'none'),
+                    'label': value or 'Not linked to a contract',
+                    'gross': total or 0.0, 'count': cnt,
+                    'model': 'account.move',
+                    'domain': ar_domain + [('aabaan_services', '=', value)],
+                })
+            services.sort(key=lambda item: -item['gross'])
+            services = services[:8]
+
+        return {
+            'kpis': kpis, 'ageing': ageing, 'recovery': recovery,
+            'top_debtors': top_debtors, 'services': services,
+            'revenue_months': self._months(
+                'account.move',
+                lambda s, e: self._invoice_domain() + [
+                    ('invoice_date', '>=', fields.Date.to_string(s)),
+                    ('invoice_date', '<', fields.Date.to_string(e))],
+                ['amount_untaxed_signed:sum', '__count']),
+            'collections_months': self._months(
+                'account.payment',
+                lambda s, e: self._payment_domain(s, e),
+                ['amount:sum', '__count']),
+            'notes': [],
+        }
+
+    # ------------------------------------------------------------------
+    # tab 5 — AMC & Renewals
+    # ------------------------------------------------------------------
+
+    def _tab_amc(self, start, end, prev_start, prev_end):
+        Sale = self.env['sale.order']
+        Task = self.env['project.task']
+        book = self._book_domain()
+        today = fields.Date.context_today(self)
+        today_s = fields.Date.to_string(today)
+        now_s = fields.Datetime.to_string(fields.Datetime.now())
+        kpis, buckets, timeline, notes = [], [], [], []
+
+        gross, count = self._sums(
+            'sale.order', book, ['amount_total:sum', '__count'])
+        kpis.append({
+            'label': 'Contracts under management', 'gross': gross,
+            'count': count, 'model': 'sale.order', 'domain': book,
+            'hero': True})
+
+        if 'end_date' in Sale._fields:
+            in90 = fields.Date.to_string(today + timedelta(days=90))
+
+            def bucket(key, label, extra, status=None):
+                domain = book + extra
+                total, cnt = self._sums(
+                    'sale.order', domain, ['amount_total:sum', '__count'])
+                buckets.append({
+                    'key': key, 'label': label, 'gross': total, 'count': cnt,
+                    'status': status, 'model': 'sale.order', 'domain': domain})
+
+            bucket('past', 'Past end-of-term',
+                   [('end_date', '!=', False), ('end_date', '<', today_s)],
+                   'critical')
+            bucket('next90', 'Renewing within 90 days',
+                   [('end_date', '>=', today_s), ('end_date', '<=', in90)],
+                   'warning')
+            bucket('later', 'Beyond 90 days', [('end_date', '>', in90)])
+            bucket('open_ended', 'No end date set', [('end_date', '=', False)])
+
+            month_start = today.replace(day=1)
+            past_domain = book + [
+                ('end_date', '!=', False),
+                ('end_date', '<', fields.Date.to_string(month_start))]
+            p_total, p_cnt = self._sums(
+                'sale.order', past_domain, ['amount_total:sum', '__count'])
+            timeline.append({
+                'key': 'past', 'label': 'Overdue', 'gross': p_total,
+                'count': p_cnt, 'status': 'critical',
+                'model': 'sale.order', 'domain': past_domain})
+            for offset in range(12):
+                m_from = month_start + relativedelta(months=offset)
+                m_to = m_from + relativedelta(months=1)
+                m_domain = book + [
+                    ('end_date', '>=', fields.Date.to_string(m_from)),
+                    ('end_date', '<', fields.Date.to_string(m_to))]
+                m_total, m_cnt = self._sums(
+                    'sale.order', m_domain, ['amount_total:sum', '__count'])
+                timeline.append({
+                    'key': m_from.strftime('%Y-%m'),
+                    'label': m_from.strftime('%b'),
+                    'gross': m_total, 'count': m_cnt,
+                    'model': 'sale.order', 'domain': m_domain})
+        else:
+            notes.append('Renewal dates need the Subscriptions app '
+                         '(sale.order.end_date).')
+
+        # Contracts at risk. The cockpit health score is a computed,
+        # non-stored field — it cannot be filtered or grouped in a query,
+        # and scoring 600+ contracts one by one would be far too slow for
+        # a dashboard. The same underlying evidence is therefore rebuilt
+        # here in two batched queries: overdue visits and escalations, per
+        # contract. Both are real counts, not a modelled score.
+        at_risk = []
+        if 'sale_order_id' in Task._fields and 'planned_date_begin' in Task._fields:
+            open_fsm = self._fsm_domain() + [('stage_id.fold', '=', False)]
+            overdue_by_order = {}
+            for order, cnt in Task._read_group(
+                    open_fsm + [('planned_date_begin', '<', now_s)],
+                    ['sale_order_id'], ['__count']):
+                if order:
+                    overdue_by_order[order.id] = cnt
+            escalated_by_order = {}
+            if 'sla_escalated' in Task._fields:
+                for order, cnt in Task._read_group(
+                        open_fsm + [('sla_escalated', '=', True)],
+                        ['sale_order_id'], ['__count']):
+                    if order:
+                        escalated_by_order[order.id] = cnt
+
+            order_ids = set(overdue_by_order) | set(escalated_by_order)
+            if order_ids:
+                orders = Sale.browse(sorted(order_ids)).exists().filtered(
+                    lambda o: o.state == 'sale')
+                has_end = 'end_date' in Sale._fields
+                for order in orders:
+                    overdue = overdue_by_order.get(order.id, 0)
+                    escalated = escalated_by_order.get(order.id, 0)
+                    reasons = []
+                    if overdue:
+                        reasons.append('%s visit%s past planned date'
+                                       % (overdue, '' if overdue == 1 else 's'))
+                    if escalated:
+                        reasons.append('%s escalated' % escalated)
+                    days_left = None
+                    if has_end and order.end_date:
+                        days_left = (order.end_date - today).days
+                        if 0 <= days_left <= 90:
+                            reasons.append('renews in %s days' % days_left)
+                        elif days_left < 0:
+                            reasons.append('past end of term')
+                    at_risk.append({
+                        'key': str(order.id), 'label': order.name,
+                        'partner': order.partner_id.name or '',
+                        'gross': order.amount_total,
+                        'overdue': overdue, 'escalated': escalated,
+                        'days_left': days_left,
+                        'reason': ' · '.join(reasons),
+                        'model': 'sale.order',
+                        'domain': [('id', '=', order.id)],
+                    })
+                at_risk.sort(
+                    key=lambda item: (-item['escalated'], -item['overdue'],
+                                      -item['gross']))
+                at_risk = at_risk[:12]
+        else:
+            notes.append('Contracts at risk needs Field Service visits linked '
+                         'to their contract.')
+
+        # Compliance documents expiring — from the service-contracts pack.
+        documents = []
+        if 'aabaan.contract.document' in self.env:
+            Doc = self.env['aabaan.contract.document']
+            soon = fields.Date.to_string(today + timedelta(days=60))
+            for key, label, extra, status in (
+                    ('expired', 'Expired', [
+                        ('valid_until', '!=', False),
+                        ('valid_until', '<', today_s)], 'critical'),
+                    ('soon', 'Expiring within 60 days', [
+                        ('valid_until', '>=', today_s),
+                        ('valid_until', '<=', soon)], 'warning')):
+                cnt = Doc.search_count(extra)
+                if cnt:
+                    documents.append({
+                        'key': key, 'label': label, 'count': cnt,
+                        'status': status,
+                        'model': 'aabaan.contract.document', 'domain': extra})
+
+        if 'cockpit_unscheduled_over' in Sale._fields:
+            notes.append(
+                'Call-out entitlement overuse is shown per contract on the '
+                'Contract Cockpit tab — it is a computed field and cannot be '
+                'totalled in a dashboard query.')
+
+        return {
+            'kpis': kpis, 'buckets': buckets, 'timeline': timeline,
+            'at_risk': at_risk, 'documents': documents,
+            'emirates': self._group_amounts(
+                'sale.order', book, 'x_emirate_regime'),
+            'service_lines': self._group_amounts(
+                'sale.order', book, 'x_service_line'),
+            'notes': notes,
+        }
