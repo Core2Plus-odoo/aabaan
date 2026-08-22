@@ -100,7 +100,19 @@ def _setup_entities(env):
             create_vals = {'name': spec['name']}
             if country:
                 create_vals['country_id'] = country.id
-            company = Company.create(create_vals)
+            try:
+                company = Company.create(create_vals)
+            except Exception:
+                # A failure here must not abort the whole module-loading
+                # transaction (it has before — a NOT-NULL column added by
+                # a module that hadn't registered its res.partner fields
+                # yet at this point in the load order took the entire
+                # registry down). Log and move on; idempotent, so the next
+                # upgrade retries this entity.
+                _logger.exception(
+                    "Aabaan entities: could not create company for %s",
+                    spec['name'])
+                continue
         if not spec.get('main'):
             if company.name != spec['name']:
                 vals['name'] = spec['name']

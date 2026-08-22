@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Legal Entities',
-    'version': '19.0.2.2.0',
+    'version': '19.0.2.3.0',
     'post_init_hook': '_post_init_hook',
     'category': 'Hidden/Tools',
     'summary': 'The three licensed Aaban entities as separate companies, with licence expiry tracking',
@@ -28,7 +28,7 @@ that raises a renewal activity 60 days ahead.
 """,
     'author': 'C2P Consultants FZC LLC',
     'license': 'OPL-1',
-    'depends': ['base', 'mail'],
+    'depends': ['base', 'mail', 'account'],
     'data': [
         'data/cron.xml',
         'views/res_company_views.xml',
