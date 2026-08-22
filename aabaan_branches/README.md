@@ -36,3 +36,15 @@ and the website prints the live company registry instead of hardcoding.
   Dubai/Sharjah charts if auto-load was not possible.
 - Fujairah: no licence provided — no entity created. Say the word when
   one exists.
+
+## Fixed: registry-crashing load-order bug
+
+The module now depends on `account`. Creating a `res.company` also creates
+its `res.partner`; `account` adds a NOT-NULL field to `res.partner`
+(`autopost_bills`). Without a declared dependency, Odoo's module load order
+isn't guaranteed to load `account` before this module, so the ORM didn't
+know that field existed yet when the entity-creation migration ran —
+the INSERT omitted it, Postgres rejected the null, and the whole registry
+failed to load (not just this module). The company-create call is also
+now wrapped the same way every other write in this function already is:
+logged and skipped on failure, never able to take the database down.
