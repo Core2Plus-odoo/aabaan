@@ -55,6 +55,6 @@
         <field name="url">/services</field>
         <field name="view_id" ref="page_services_index"/>
         <field name="is_published" eval="True"/>
-        <field name="website_meta_description">Pest control, water tank cleaning, anti-termite treatment and deep cleaning — municipality-approved, fixed prices, across five emirates. Call 800 AABAN.</field>
+        <field name="website_meta_description">Pest control, water tank cleaning, anti-termite treatment and deep cleaning — municipality-approved, fixed prices, across three emirates. Call 800 AABAN.</field>
     </record>
 </odoo>
