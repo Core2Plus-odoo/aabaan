@@ -43,3 +43,30 @@ check-in/out times, and the linked follow-up.
 Worksheets (Studio-built, Priority 2), materials billing
 (`industry_fsm_sale`/`industry_fsm_stock`), and timesheet billing are native
 Odoo — configure, don't re-code.
+
+## Planning Board (the Gantt from the approved UI reference)
+
+Field Service → **Planning Board**: every scheduled visit on its
+technician's row. Standard-first — the impressive parts of the mockup are
+**native Enterprise Gantt behaviour**, not custom code:
+
+- drag a visit to reschedule it, drag it between rows to reassign it;
+- the Unassigned row catches visits without an owner;
+- day / week / month scales;
+- the bar on each technician row is their workload for the visible period,
+  computed by Odoo from real working calendars.
+
+What this module adds is only the tuning: SLA-escalated visits render
+red (`sla_escalated`), the popover carries customer/contract/check-in,
+and the default filter shows open visits.
+
+**To Schedule** is the honest companion lane: a Gantt can only show what
+has a date, so visits without a planned date would silently not appear.
+They land in this list instead — the dispatcher's backlog, visible rather
+than hidden.
+
+**Deliberately NOT built: auto-routing.** The mockup's suggested-route
+engine needs travel-time or geo data, and this database has neither. A
+route computed without a real distance source would be an invented
+number; the workload bars and the map-free Gantt are what the data can
+honestly support today.

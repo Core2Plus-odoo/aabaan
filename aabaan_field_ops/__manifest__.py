@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Field Operations',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'category': 'Services/Field Service',
     'summary': 'Guard-railed visit execution: dispatch, start/complete flow, auto follow-ups, SLA escalation',
     'description': """
@@ -18,6 +18,13 @@ The execution layer over the Aabaan visit schedule, designed to be fool-proof:
   on the technician (once per visit).
 - Dispatch Board (grouped by technician) and Today's Visits menus under
   Field Service.
+- Planning Board: the visit Gantt by technician — drag to reschedule, drag
+  between rows to reassign, native per-technician workload bars, red for
+  SLA-escalated visits — plus a To Schedule list for visits without a
+  planned date (a Gantt can only show what has a date; the gap is made
+  visible instead of hidden). Auto-routing is deliberately NOT built: no
+  travel-time or geo source exists in this database, and a suggested route
+  computed without one would be an invented number.
 
 Rebuilt from the fm_fsm concepts of the previous Aabaan-Services suite,
 standard-first on native FSM tasks.
@@ -30,6 +37,7 @@ standard-first on native FSM tasks.
     'data': [
         'data/cron.xml',
         'views/project_task_views.xml',
+        'views/planning_views.xml',
         'views/sale_order_views.xml',
     ],
     'installable': True,
