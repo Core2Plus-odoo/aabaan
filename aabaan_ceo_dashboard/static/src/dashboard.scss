@@ -125,12 +125,50 @@
     .o_aabaan_notes {
         border-left: 3px solid var(--ab-warn);
         background: #fffaf0;
-        border-radius: 0 8px 8px 0;
+        border-radius: 0 5px 5px 0;
         padding: 8px 12px;
         margin-bottom: 12px;
         font-size: 12px;
         color: #53514b;
         div + div { margin-top: 3px; }
+    }
+
+    /* ── exception strip: what needs action, before any KPI ─────── */
+
+    .o_aabaan_exc {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        background: var(--ab-ink);
+        border-radius: 5px;
+
+        .xh {
+            font-size: 10px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 700;
+            color: rgba(244, 242, 238, 0.65);
+            margin-right: 2px;
+        }
+        .xc {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 5px;
+            border: 1px solid rgba(244, 242, 238, 0.25);
+            border-radius: 4px;
+            padding: 3px 10px;
+            font-size: 12px;
+            color: #f4f2ee;
+            cursor: pointer;
+            b { font-size: 13.5px; font-variant-numeric: tabular-nums; }
+            .xg { font-weight: 700; font-variant-numeric: tabular-nums; }
+            &.critical b, &.critical .xg { color: #ff8f8f; }
+            &.warning b, &.warning .xg { color: #ffc46b; }
+            &:hover { border-color: var(--ab-orange); }
+        }
     }
 
     /* ── KPI tiles ────────────────────────────────────────────── */
@@ -143,12 +181,12 @@
         .kpi {
             display: flex;
             flex-direction: column;
-            gap: 3px;
+            gap: 2px;
             background: #fcfcfb;
             border: 1px solid var(--ab-ring);
-            border-radius: 10px;
-            padding: 14px 16px 12px;
-            box-shadow: 0 1px 2px rgba(23, 23, 26, 0.06), 0 8px 24px rgba(23, 23, 26, 0.06);
+            border-radius: 5px;
+            padding: 10px 14px 9px;
+            box-shadow: 0 1px 2px rgba(23, 23, 26, 0.08);
             &.clickable { cursor: pointer; }
             &.clickable:hover { transform: translateY(-1px); }
 
@@ -185,9 +223,9 @@
         .card {
             background: #fcfcfb;
             border: 1px solid var(--ab-ring);
-            border-radius: 10px;
-            padding: 16px 18px 14px;
-            box-shadow: 0 1px 2px rgba(23, 23, 26, 0.06), 0 8px 24px rgba(23, 23, 26, 0.06);
+            border-radius: 5px;
+            padding: 12px 14px 10px;
+            box-shadow: 0 1px 2px rgba(23, 23, 26, 0.08);
             min-width: 0;
             &.wide { grid-column: 1 / -1; }
             h2 { font-size: 13.5px; font-weight: 700; margin: 0 0 10px; }
@@ -227,8 +265,8 @@
             .rn {
                 border: 1px solid var(--ab-ring);
                 border-left: 3px solid var(--ab-blue);
-                border-radius: 8px;
-                padding: 10px 12px;
+                border-radius: 5px;
+                padding: 8px 11px;
                 cursor: pointer;
                 display: flex;
                 flex-direction: column;
@@ -250,8 +288,8 @@
             gap: 12px;
             border: 1px solid var(--ab-ring);
             border-left: 3px solid var(--ab-crit);
-            border-radius: 8px;
-            padding: 8px 12px;
+            border-radius: 5px;
+            padding: 7px 11px;
             cursor: pointer;
             min-width: 0;
             &:hover { background: rgba(208, 59, 59, 0.04); }

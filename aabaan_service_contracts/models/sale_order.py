@@ -11,6 +11,8 @@ class SaleOrder(models.Model):
         'aabaan.contract.document', 'order_id', string="Compliance Documents")
     contract_sites_count = fields.Integer(
         string="Sites", compute='_compute_contract_rollups')
+    contract_documents_count = fields.Integer(
+        string="Compliance Documents", compute='_compute_documents_count')
     contract_avg_uptime = fields.Float(
         string="Avg. SLA Uptime YTD (%)", compute='_compute_contract_rollups',
         digits=(5, 1),
@@ -31,6 +33,44 @@ class SaleOrder(models.Model):
              "The indicative uplift amount is not auto-calculated — this "
              "database has no live UAE CPI rate source, and estimating one "
              "would be an invented number.")
+
+    @api.depends('contract_document_ids')
+    def _compute_documents_count(self):
+        for order in self:
+            order.contract_documents_count = len(order.contract_document_ids)
+
+    def action_view_contract_sites(self):
+        """Smart button: this contract's Sites & SLA lines in a standalone
+        list (the embedded list's site picker domain references the parent
+        order, so it cannot be reused outside the order form)."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Sites — %s" % self.name,
+            'res_model': 'aabaan.contract.site',
+            'domain': [('order_id', '=', self.id)],
+            'views': [
+                (self.env.ref(
+                    'aabaan_service_contracts.view_contract_site_list_full').id,
+                 'list'),
+                (False, 'form')],
+            'context': {'default_order_id': self.id},
+        }
+
+    def action_view_contract_documents(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Compliance Documents — %s" % self.name,
+            'res_model': 'aabaan.contract.document',
+            'domain': [('order_id', '=', self.id)],
+            'views': [
+                (self.env.ref(
+                    'aabaan_service_contracts.view_contract_document_list_full').id,
+                 'list'),
+                (False, 'form')],
+            'context': {'default_order_id': self.id},
+        }
 
     @api.depends('contract_site_ids.uptime_ytd', 'contract_site_ids.visit_count_ytd')
     def _compute_contract_rollups(self):

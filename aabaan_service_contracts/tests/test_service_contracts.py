@@ -103,6 +103,11 @@ class TestServiceContracts(TransactionCase):
         self.assertEqual(expiring.document_status, 'expiring_soon')
         self.assertEqual(expired.document_status, 'expired')
         self.assertEqual(valid.document_status, 'valid')
+        self.assertEqual(self.order.contract_documents_count, 4,
+                         "smart-button count must match the pack")
+        action = self.order.action_view_contract_documents()
+        self.assertEqual(action['res_model'], 'aabaan.contract.document')
+        self.assertIn(('order_id', '=', self.order.id), action['domain'])
 
     def test_document_expiry_cron_raises_one_activity_no_duplicates(self):
         today = fields.Date.context_today(self.env.user)

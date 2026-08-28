@@ -194,3 +194,16 @@ class SaleOrder(models.Model):
                 order.cockpit_unscheduled_over = 0
                 order.cockpit_entitlement_note = (
                     "Set the contract's emirate to track call-out entitlement")
+
+    def action_view_visits(self):
+        """Smart button: this contract's Field Service visits."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': "Visits — %s" % self.name,
+            'res_model': 'project.task',
+            'domain': [('sale_order_id', '=', self.id),
+                       ('project_id.is_fsm', '=', True)],
+            'views': [(False, 'list'), (False, 'form')],
+            'context': {'default_sale_order_id': self.id},
+        }

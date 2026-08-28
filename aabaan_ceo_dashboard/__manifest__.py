@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Executive Command Centre',
-    'version': '19.0.2.0.0',
+    'version': '19.0.2.1.0',
     'category': 'Reporting',
     'summary': 'Five-tab live executive dashboard: overview, field ops, sales, finance, AMC renewals',
     'description': """

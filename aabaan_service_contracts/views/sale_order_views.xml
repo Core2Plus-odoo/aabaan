@@ -5,6 +5,20 @@
         <field name="model">sale.order</field>
         <field name="inherit_id" ref="aabaan_contract_cockpit.view_order_form_cockpit"/>
         <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_contract_sites" type="object"
+                        class="oe_stat_button" icon="fa-building-o"
+                        invisible="state != 'sale'">
+                    <field name="contract_sites_count" widget="statinfo"
+                           string="Sites"/>
+                </button>
+                <button name="action_view_contract_documents" type="object"
+                        class="oe_stat_button" icon="fa-file-text-o"
+                        invisible="state != 'sale'">
+                    <field name="contract_documents_count" widget="statinfo"
+                           string="Documents"/>
+                </button>
+            </xpath>
             <xpath expr="//page[@name='aabaan_invoices']" position="after">
                 <page string="Sites &amp; Compliance" name="aabaan_sites"
                       invisible="state != 'sale'">
