@@ -60,6 +60,12 @@ class TestCeoDashboard(TransactionCase):
     def test_executive_tiles_and_trends(self):
         data = self._data('executive')
         self.assertTrue(data['tiles'])
+        self.assertIn('exceptions', data)
+        for entry in data['exceptions']:
+            self.assertGreater(entry['count'], 0,
+                               "a quiet business shows a quiet strip — "
+                               "zero-count exceptions must be dropped")
+            self.assertIn('domain', entry)
         self.assertEqual(len(data['revenue_months']), 12)
         self.assertEqual(len(data['collections_months']), 12)
         for entry in data['period_block']:

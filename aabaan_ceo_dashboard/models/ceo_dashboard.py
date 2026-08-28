@@ -322,7 +322,64 @@ class AabaanCeoDashboard(models.AbstractModel):
                 'domain': book + [('partner_id', '=', partner.id)],
             })
 
+        # Exception strip — the dashboard leads with what needs action.
+        # Every entry is a live count carrying its drill-down domain;
+        # anything with nothing to report is dropped, so a quiet business
+        # shows a quiet strip rather than a row of zeros.
+        today = fields.Date.context_today(self)
+        today_s = fields.Date.to_string(today)
+        exceptions = []
+
+        def exc(key, label, model, domain, aggregates=None,
+                status='critical'):
+            if aggregates:
+                total, cnt = self._sums(model, domain, aggregates)
+            else:
+                total, cnt = None, self.env[model].search_count(domain)
+            if cnt:
+                entry = {'key': key, 'label': label, 'count': cnt,
+                         'status': status, 'model': model, 'domain': domain}
+                if total is not None:
+                    entry['gross'] = total
+                exceptions.append(entry)
+
+        exc('ar90', 'receivables overdue 90+ days', 'account.move',
+            self._ar_domain() + [('invoice_date_due', '<',
+                                  fields.Date.to_string(
+                                      today - timedelta(days=90)))],
+            ['amount_residual:sum', '__count'])
+        Sale = self.env['sale.order']
+        if 'end_date' in Sale._fields:
+            exc('pastterm', 'contracts past end-of-term', 'sale.order',
+                self._book_domain() + [('end_date', '!=', False),
+                                       ('end_date', '<', today_s)],
+                ['amount_total:sum', '__count'])
+        Task = self.env['project.task']
+        open_fsm = self._fsm_domain() + [('stage_id.fold', '=', False)]
+        if 'x_sla_due' in Task._fields:
+            exc('sla', 'visits past SLA deadline, still open',
+                'project.task',
+                open_fsm + [('x_sla_due', '<', fields.Datetime.to_string(
+                    fields.Datetime.now()))])
+        if 'sla_escalated' in Task._fields:
+            exc('esc', 'escalated visits still open', 'project.task',
+                open_fsm + [('sla_escalated', '=', True)])
+        if 'aabaan.contract.document' in self.env:
+            exc('docs', 'compliance documents expired',
+                'aabaan.contract.document',
+                [('valid_until', '!=', False),
+                 ('valid_until', '<', today_s)])
+        Company = self.env['res.company']
+        if 'aabaan_licence_expiry' in Company._fields:
+            exc('licence', 'trade licences expired or expiring in 60 days',
+                'res.company',
+                [('aabaan_licence_expiry', '!=', False),
+                 ('aabaan_licence_expiry', '<', fields.Date.to_string(
+                     today + timedelta(days=60)))],
+                status='warning')
+
         return {
+            'exceptions': exceptions,
             'tiles': tiles,
             'period_block': period_block,
             'revenue_months': self._months(

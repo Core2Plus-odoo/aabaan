@@ -159,6 +159,17 @@
 
                 <!-- ══ Executive Overview ══ -->
                 <t t-if="state.tab === 'executive'">
+                    <div class="o_aabaan_exc" t-if="hasAny(state.data.exceptions)">
+                        <span class="xh">Needs action</span>
+                        <button t-foreach="state.data.exceptions" t-as="item" t-key="item.key"
+                                t-attf-class="xc {{ item.status }}"
+                                t-on-click="() => this.open(item)">
+                            <b t-out="item.count"/>
+                            <span t-out="item.label"/>
+                            <span class="xg" t-if="item.gross !== undefined"
+                                  t-out="money(item.gross)"/>
+                        </button>
+                    </div>
                     <div class="o_aabaan_dash_tiles">
                         <t t-foreach="state.data.tiles" t-as="item" t-key="item.label">
                             <t t-call="aabaan_ceo_dashboard.Kpi"/>
