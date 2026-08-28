@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Quotation Report',
-    'version': '19.0.1.3.0',
+    'version': '19.0.1.4.0',
     'category': 'Sales/Sales',
     'summary': 'Branded quotation/contract PDF in the Aaban Services letterhead style',
     'description': """
@@ -25,6 +25,7 @@ sale.action_report_saleorder's report_name back to sale.report_saleorder.
     'license': 'OPL-1',
     'depends': [
         'aabaan_visit_schedule',
+        'aabaan_letterhead',
     ],
     'data': [
         'report/quotation_report.xml',

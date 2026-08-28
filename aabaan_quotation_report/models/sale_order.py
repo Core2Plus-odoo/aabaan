@@ -4,6 +4,7 @@ import re
 from markupsafe import Markup
 
 from odoo import models
+from odoo.addons.aabaan_letterhead import tools as letterhead
 
 
 class SaleOrder(models.Model):
@@ -31,13 +32,7 @@ class SaleOrder(models.Model):
         return Markup(html)
 
     def _aabaan_line_desc(self, line):
-        """Line description without the internal product code prefix —
-        '[AAB-CLN-DEEP-2BR] Deep Cleaning — 2BR' prints as the name only."""
-        name = (line.name or '').strip()
-        code = line.product_id.default_code
-        if code and name.startswith('[%s]' % code):
-            name = name[len(code) + 2:].lstrip()
-        return name
+        return letterhead.line_desc(line)
 
     def _aabaan_selection_display(self, fname):
         """Display label of a (possibly manual/Studio) field for report
@@ -89,10 +84,7 @@ class SaleOrder(models.Model):
 
     def _aabaan_amount_in_words(self):
         self.ensure_one()
-        try:
-            return self.currency_id.amount_to_text(self.amount_total)
-        except Exception:
-            return ''
+        return letterhead.amount_in_words(self)
 
 
 class SaleOrderLine(models.Model):

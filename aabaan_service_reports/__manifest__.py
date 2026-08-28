@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Service Documents',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'category': 'Services/Field Service',
     'summary': 'Letterhead service report and certificates printed from the visit',
     'description': """
@@ -24,7 +24,7 @@ All values resolve at runtime; absent manual x_* fields degrade to empty.
 """,
     'author': 'C2P Consultants FZC LLC',
     'license': 'OPL-1',
-    'depends': ['aabaan_field_ops', 'aabaan_quotation_report'],
+    'depends': ['aabaan_field_ops', 'aabaan_quotation_report', 'aabaan_letterhead'],
     'data': [
         'report/service_documents.xml',
     ],

@@ -1,7 +1,10 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 from odoo import api, fields, models
 
-DONE_HINTS = ('complete', 'report issued', 'certificate')
+# The one definition of what counts as a completed stage lives in field
+# ops (this module depends on it); a second copy here had already begun
+# its inevitable drift.
+from odoo.addons.aabaan_field_ops.models.project_task import DONE_HINTS  # noqa: E402,F401
 
 
 class SaleOrder(models.Model):
@@ -81,14 +84,23 @@ class SaleOrder(models.Model):
                     ['res_id'], ['__count']):
                 att_counts[res_id] = count
 
+        # visits batched too: this compute renders on the Contract Register
+        # list (80 rows a page), and one search per row was 80 searches per
+        # page load. One search, bucketed by order.
+        tasks_by_order = {}
+        if real_ids:
+            for task in Task.search([
+                    ('sale_order_id', 'in', real_ids),
+                    ('project_id.is_fsm', '=', True)]):
+                tasks_by_order.setdefault(
+                    task.sale_order_id.id, []).append(task)
+
         for order in self:
             # --- delivery, from the generated Field Service visits ---
             total = done = overdue = escalated = unscheduled = 0
             due_count = due_done = 0
             if order.id:
-                tasks = Task.search([
-                    ('sale_order_id', '=', order.id),
-                    ('project_id.is_fsm', '=', True)])
+                tasks = tasks_by_order.get(order.id, [])
                 total = len(tasks)
                 if unsched_keys:
                     unscheduled = sum(

@@ -1,78 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- Shared letterhead (same design as the quotation report) -->
+    <!-- Delegates to the shared Aaban letterhead (aabaan_letterhead) —
+         this also retires the CSS-triangle band here: triangles render
+         unreliably in wkhtmltopdf, which is why the quotation dropped
+         them first. Callers already set `company` in scope. -->
     <template id="svc_letterhead_header">
-        <div class="header">
-            <table style="width: 100%; border-collapse: collapse; font-family: Helvetica, Arial, sans-serif;">
-                <tr>
-                    <td style="vertical-align: top; padding: 0;">
-                        <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
-                            <tr>
-                                <td style="width: 58%; background-color: #1A1A1C; height: 15px; padding: 0;"/>
-                                <td style="width: 24px; padding: 0; vertical-align: top;">
-                                    <div style="width: 0; height: 0; border-left: 24px solid #1A1A1C; border-bottom: 15px solid transparent;"/>
-                                </td>
-                                <td style="width: 18px; padding: 0; vertical-align: top;">
-                                    <div style="width: 0; height: 0; border-bottom: 15px solid #EF7D25; border-left: 18px solid transparent;"/>
-                                </td>
-                                <td style="background-color: #EF7D25; height: 15px; padding: 0;"/>
-                            </tr>
-                        </table>
-                        <table style="width: 72%; border-collapse: collapse; margin-top: 4px;">
-                            <tr>
-                                <td style="background-color: #1A1A1C; height: 10px; padding: 0;"/>
-                                <td style="width: 18px; padding: 0; vertical-align: top;">
-                                    <div style="width: 0; height: 0; border-left: 18px solid #1A1A1C; border-bottom: 10px solid transparent;"/>
-                                </td>
-                            </tr>
-                        </table>
-                    </td>
-                    <td style="width: 200px; text-align: right; vertical-align: top; padding: 0 0 0 14px;">
-                        <img t-if="company.logo" t-att-src="image_data_uri(company.logo)"
-                             style="max-height: 62px; max-width: 185px;" alt="Logo"/>
-                        <div t-else="" style="font-size: 20px; font-weight: bold; color: #EF7D25;"
-                             t-esc="company.name"/>
-                        <div style="font-size: 7.5px; color: #EF7D25; font-weight: bold; margin-top: 2px;">
-                            One Stop for Every Service Need!
-                        </div>
-                    </td>
-                </tr>
-            </table>
-        </div>
+        <t t-call="aabaan_letterhead.header"/>
     </template>
 
     <template id="svc_letterhead_footer">
-        <div class="footer">
-            <div style="font-family: Helvetica, Arial, sans-serif;">
-                <div style="font-size: 7.5px; text-align: center; color: #9A9AA0; font-style: italic;">
-                    Page <span class="page"/> of <span class="topage"/>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 8.5px; color: #1A1A1C; margin-top: 2px;">
-                    <tr>
-                        <td style="vertical-align: bottom;">
-                            <div style="font-weight: bold;">800 AABAN (800 22226)</div>
-                            <div style="font-weight: bold;">+971 55 859 8834 | +971 55 866 6530</div>
-                            <div>infoaabanservices@gmail.com</div>
-                        </td>
-                        <td style="vertical-align: bottom; text-align: right;">
-                            <div style="color: #58585E;">
-                                <t t-if="company.vat">TRN: <span t-esc="company.vat"/></t>
-                                <t t-if="company.company_registry"> &#183; Trade Licence No: <span t-esc="company.company_registry"/></t>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
-                <table style="width: 100%; border-collapse: collapse; margin-top: 4px;">
-                    <tr>
-                        <td style="width: 30%; background-color: #EF7D25; height: 10px; padding: 0;"/>
-                        <td style="width: 16px; padding: 0; vertical-align: bottom;">
-                            <div style="width: 0; height: 0; border-right: 16px solid #1A1A1C; border-top: 10px solid transparent;"/>
-                        </td>
-                        <td style="background-color: #1A1A1C; height: 10px; padding: 0;"/>
-                    </tr>
-                </table>
-            </div>
-        </div>
+        <t t-call="aabaan_letterhead.footer"/>
     </template>
 
     <template id="svc_ref_table">
