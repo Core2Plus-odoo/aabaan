@@ -10,9 +10,9 @@ class SaleOrder(models.Model):
     contract_document_ids = fields.One2many(
         'aabaan.contract.document', 'order_id', string="Compliance Documents")
     contract_sites_count = fields.Integer(
-        string="Sites", compute='_compute_contract_rollups')
+        string="Site Count", compute='_compute_contract_rollups')
     contract_documents_count = fields.Integer(
-        string="Compliance Documents", compute='_compute_documents_count')
+        string="Document Count", compute='_compute_documents_count')
     contract_avg_uptime = fields.Float(
         string="Avg. SLA Uptime YTD (%)", compute='_compute_contract_rollups',
         digits=(5, 1),
