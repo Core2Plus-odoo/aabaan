@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Invoice Report',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.1.0',
     'category': 'Accounting/Accounting',
     'summary': 'FTA-compliant Tax Invoice PDF plus a native Document Audit Trail on customer invoices',
     'description': """
@@ -33,7 +33,7 @@ yet simply doesn't appear.
 """,
     'author': 'C2P Consultants FZC LLC',
     'license': 'OPL-1',
-    'depends': ['account'],
+    'depends': ['account', 'aabaan_letterhead'],
     'data': [
         'report/invoice_report.xml',
         'views/account_move_views.xml',

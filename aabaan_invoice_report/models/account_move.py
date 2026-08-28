@@ -2,6 +2,7 @@
 from markupsafe import Markup, escape
 
 from odoo import _, api, fields, models
+from odoo.addons.aabaan_letterhead import tools as letterhead
 from odoo.exceptions import UserError
 
 
@@ -35,11 +36,7 @@ class AccountMove(models.Model):
         return 'Tax Credit Note' if self.move_type == 'out_refund' else 'Tax Invoice'
 
     def _aabaan_line_desc(self, line):
-        name = (line.name or '').strip()
-        code = line.product_id.default_code
-        if code and name.startswith('[%s]' % code):
-            name = name[len(code) + 2:].lstrip()
-        return name
+        return letterhead.line_desc(line)
 
     def _aabaan_numbered_lines(self):
         self.ensure_one()
@@ -54,10 +51,7 @@ class AccountMove(models.Model):
 
     def _aabaan_amount_in_words(self):
         self.ensure_one()
-        try:
-            return self.currency_id.amount_to_text(self.amount_total)
-        except Exception:
-            return ''
+        return letterhead.amount_in_words(self)
 
     def _aabaan_reverse_charge(self):
         self.ensure_one()
