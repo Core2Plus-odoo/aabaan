@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Field Operations',
-    'version': '19.0.1.1.0',
+    'version': '19.0.1.2.0',
     'category': 'Services/Field Service',
     'summary': 'Guard-railed visit execution: dispatch, start/complete flow, auto follow-ups, SLA escalation',
     'description': """
@@ -16,8 +16,10 @@ The execution layer over the Aabaan visit schedule, designed to be fool-proof:
   Cancelled on the kanban is intercepted.
 - A daily cron escalates SLA breaches and visits a day past plan as activities
   on the technician (once per visit).
-- Dispatch Board (grouped by technician) and Today's Visits menus under
-  Field Service.
+- Today's Visits menu under Field Service. (The former Dispatch Board
+  menu was retired by the cleanup audit - the Planning Board's kanban
+  mode is the same by-technician view; the action survives for saved
+  bookmarks.)
 - Planning Board: the visit Gantt by technician — drag to reschedule, drag
   between rows to reassign, native per-technician workload bars, red for
   SLA-escalated visits — plus a To Schedule list for visits without a
