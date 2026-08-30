@@ -90,7 +90,9 @@
     <menuitem id="menu_todays_visits" name="Today's Visits"
               parent="industry_fsm.fsm_menu_root"
               action="aabaan_field_ops.action_todays_visits" sequence="4"/>
-    <menuitem id="menu_dispatch_board" name="Dispatch Board"
-              parent="industry_fsm.fsm_menu_root"
-              action="aabaan_field_ops.action_dispatch_board" sequence="5"/>
+    <!-- Cleanup audit: the Dispatch Board menu was retired - the Planning
+         Board's kanban mode is the same by-technician view of the same
+         records, and two menus for one job is how users end up split
+         across screens. The action above is kept for saved bookmarks;
+         restoring the menu is one menuitem away if ever missed. -->
 </odoo>

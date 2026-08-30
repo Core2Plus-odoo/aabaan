@@ -2,6 +2,7 @@
 from datetime import timedelta
 
 from odoo import fields
+from odoo.exceptions import AccessError
 from odoo.tests import TransactionCase, tagged
 
 
@@ -125,6 +126,32 @@ class TestServiceContracts(TransactionCase):
                 ('res_model', '=', 'sale.order'),
                 ('res_id', '=', self.order.id)]),
             count, "re-running the cron must not duplicate the activity")
+
+    def test_compliance_documents_cannot_be_deleted_by_salesmen(self):
+        """A salesperson can build the compliance pack but not thin it out —
+        deleting evidence is a manager's call (cleanup-audit tightening)."""
+        Users = self.env['res.users']
+        # the groups field was renamed across versions — resolve at runtime
+        gfield = 'group_ids' if 'group_ids' in Users._fields else 'groups_id'
+        salesman = Users.create({
+            'name': 'Doc Test Salesman', 'login': 'doc_test_salesman',
+            gfield: [(6, 0, [self.env.ref(
+                'sales_team.group_sale_salesman').id])]})
+        manager = Users.create({
+            'name': 'Doc Test Manager', 'login': 'doc_test_manager',
+            gfield: [(6, 0, [self.env.ref(
+                'sales_team.group_sale_manager').id])]})
+        doc = self.env['aabaan.contract.document'].create({
+            'order_id': self.order.id, 'name': 'Deletable?',
+            'document_type': 'other'})
+        created = self.env['aabaan.contract.document'].with_user(
+            salesman).create({
+                'order_id': self.order.id, 'name': 'Salesman-created',
+                'document_type': 'other'})
+        self.assertTrue(created, "creating pack documents stays open to all")
+        with self.assertRaises(AccessError):
+            doc.with_user(salesman).unlink()
+        doc.with_user(manager).unlink()
 
     def test_site_id_domain_restricted_to_customers_own_sites(self):
         other_client = self.env['res.partner'].create({'name': 'Other Co'})
