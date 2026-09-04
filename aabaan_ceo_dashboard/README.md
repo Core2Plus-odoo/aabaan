@@ -43,6 +43,36 @@ are never conflated. Recovery classification (from `aabaan_finance_core`),
 invoiced-against-collected side by side, top debtors with their overdue
 slice, and outstanding by service.
 
+**Expenses & Margin** — total spend, invoiced net of VAT, what is left
+after it, margin, and payroll share. Invoiced against spent over twelve
+months, side by side. Where the money went, ranked by expense account —
+the chart of accounts *is* the expense category, so there is no parallel
+taxonomy to keep in step. Cost by emirate, read off the **Emirate analytic
+dimension** rather than off the document, because that dimension is what
+`aabaan_finance_core` autofills and enforces on every posting.
+
+Two things this tab does on purpose:
+
+- **Spend is read from the accounts it was booked to, not from vendor
+  bills.** A payroll journal entry is a cost. Counting only bills would
+  miss the single largest cost this business has.
+- **Untagged cost is not spread across branches.** Spend carrying no
+  Emirate tag stays out of the branch split, and the tab says so. An
+  allocation rule for shared overheads is a management decision, not
+  something a dashboard should invent.
+
+**Cash & Bank** — balance across the bank and cash accounts, money in,
+money out and net movement for the window, the twelve-month flow, balance
+per account, and recent movements.
+
+The balance is **every posted movement up to the end of the window**, while
+money in and out are the window alone — a period's opening balance is part
+of what is in the bank today. Treating those two as the same measure is the
+classic cash-tab error, so the KPI notes say which is which.
+
+Not split by emirate: a bank account belongs to the company, not a branch,
+and dividing a shared balance between branches would be a made-up number.
+
 **AMC & Renewals** — renewal buckets and a twelve-month renewal timeline;
 **contracts at risk**, each with its reason stated ("3 visits past planned
 date · 1 escalated · renews in 40 days"); compliance documents expired or
