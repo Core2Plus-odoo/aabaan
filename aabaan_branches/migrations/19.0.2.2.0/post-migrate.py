@@ -1,12 +1,17 @@
-from odoo import SUPERUSER_ID, api
+import logging
 
-from odoo.addons.aabaan_branches import _setup_entities
+_logger = logging.getLogger(__name__)
 
 
 def migrate(cr, version):
-    """Re-run the entity setup with the hierarchy fix: branch shells that
-    cannot be detached (Odoo forbids changing the company hierarchy) are
-    archived and replaced by fresh standalone companies carrying the
-    licence facts."""
-    env = api.Environment(cr, SUPERUSER_ID, {})
-    _setup_entities(env)
+    """Historical no-op.
+
+    This step re-ran the entity split with a hierarchy fix. From
+    19.0.3.0.0 the emirates are branches of the single company, so
+    `_setup_entities` no longer exists and this step must not re-create
+    the companies it once made. Kept as a no-op so the version sequence
+    stays intact for databases replaying it.
+    """
+    _logger.info(
+        "Aabaan branches 19.0.2.2.0: superseded by the branch model in "
+        "19.0.3.0.0 — no entities created.")
