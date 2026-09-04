@@ -1,50 +1,128 @@
-# Aabaan Legal Entities
+# Aabaan Branches
 
-The emirate presences are **separate legal entities**, per the trade
-licence documents — not branches. Configuration-only module.
+One company, several branches. Ajman (head office), Dubai and Sharjah are
+run as **branches of the single Aaban company**, not as separate companies
+in Odoo.
 
-## The entities (facts from the licences)
+## What is code, what is configuration
 
-| Company | Legal form | Licence | Expires | Address |
-|---|---|---|---|---|
-| Aaban Classic Building Cleaning L.L.C. (main) | LLC, Ajman DED | 103074 | 08-Jan-2027 | Shop 2, Al Nuaimiya 1, Ajman |
-| Aaban Classic Building Cleaning — Dubai | Sole Establishment, Dubai DET | 989256 | 13-Oct-2026 | Office 126, Bin Salloum Bldg, Hor Al Anz, Deira |
-| Aaban Classic Building Cleaning — SHJ BR 2 | Services Agency, Sharjah EDD | 908692 | 01-Jul-2026 ⚠ | Shop 1-2, Al Sharq St, Al Butina |
+**Configuration (lives in the production database):**
 
-⚠ The provided Sharjah document shows an already-past expiry; if renewed,
-update the date on the company form (or provide the renewed licence).
+- The **Emirate analytic plan** and its accounts. This is the branch
+  dimension. It is defined in the database, not in this repo (Rule 2), and
+  is resolved at runtime by name. `aabaan_finance_core` already autofills
+  it on invoice lines and enforces it on every posting.
 
-The letterhead's old "109374" appears on **none** of the licences and is
-treated as a known-wrong value: it is replaced by 103074 wherever found,
-and the website prints the live company registry instead of hardcoding.
+**Code (this module):**
 
-## What the setup does (idempotent, on install/upgrade)
+- `Trade Licence No.` and `Trade Licence Expiry` on each Emirate analytic
+  account, so a branch's licence is tracked where the branch is.
+- A daily check raising **one** open renewal activity 60 days before
+  expiry — for the company licence and for every branch licence. An open
+  activity blocks duplicates, so an expired licence does not re-alert
+  daily.
+- A **Branch** field on `sale.order`, searchable and groupable, pointing at
+  an Emirate analytic account.
+- Head-office contact data corrected from the letterhead where Odoo's demo
+  placeholders were still in place.
 
-- Detaches the former Dubai/Sharjah branch companies into standalone
-  entities with their licence facts, loading the UAE chart of accounts
-  when possible (otherwise configure it once in Accounting settings).
-- Archives the empty UAQ / RAK companies (recoverable; the Emirate
-  analytic dimension still tracks any UAQ/RAK jobs).
-- Fixes placeholder head-office contact data; grants entity access to
-  head-office users.
-- Seeds **Trade Licence Expiry** on each company; a daily check raises a
-  renewal activity 60 days ahead (no duplicates).
+## Why the branch drives the analytic tag
 
-## What is configuration (native Odoo)
+`aabaan_finance_core` fills the Emirate analytic tag on an invoice line by
+reading the source contract's `x_emirate_regime` label and matching it
+against analytic account names. That fuzzy step is what leaves a posting
+blocked when no name matches.
 
-- Per-entity bank accounts and journals, users' default company, and the
-  Dubai/Sharjah charts if auto-load was not possible.
-- Fujairah: no licence provided — no entity created. Say the word when
-  one exists.
+When a contract names its Branch explicitly, finance core uses that link
+instead and skips the matching. The lookup is runtime-guarded
+(`'aabaan_branch_id' in order._fields`) because `aabaan_finance_core` does
+not depend on this module, so it degrades to the old behaviour if this
+module is absent.
 
-## Fixed: registry-crashing load-order bug
+## Licence facts
 
-The module now depends on `account`. Creating a `res.company` also creates
-its `res.partner`; `account` adds a NOT-NULL field to `res.partner`
-(`autopost_bills`). Without a declared dependency, Odoo's module load order
-isn't guaranteed to load `account` before this module, so the ORM didn't
-know that field existed yet when the entity-creation migration ran —
-the INSERT omitted it, Postgres rejected the null, and the whole registry
-failed to load (not just this module). The company-create call is also
-now wrapped the same way every other write in this function already is:
-logged and skipped on failure, never able to take the database down.
+Transcribed from the licence documents; no figure is invented.
+
+| Branch | Licence | Expires |
+|---|---|---|
+| Ajman (head office) | 103074 | 08-Jan-2027 |
+| Dubai | 989256 | 13-Oct-2026 |
+| Sharjah | 908692 | 01-Jul-2026 |
+
+The letterhead's old registry **109374** appears on none of the licence
+documents and is treated as a known-wrong placeholder, corrected wherever
+it was used.
+
+## Migrating from separate companies
+
+Versions 19.0.2.x split Dubai and Sharjah into **standalone companies**.
+Version 19.0.3.0.0 reverses that direction: the emirates are branches
+again.
+
+**Why.** The separate emirate licences exist because the UAE requires a
+local licence to trade in each emirate — not because the business is three
+businesses. Commercially and for tax it is one company: one taxable
+person, one TRN, one set of statutory books. The Sharjah licence is
+registered as *SHJ BR 2* — a branch registration — which is the same story
+in the paperwork.
+
+The upgrade **stops maintaining the split** and carries each company's
+licence number and expiry onto the matching branch, so nothing is lost.
+It does **not** merge the books, because:
+
+> Odoo cannot move journal entries between companies.
+
+Consolidating is an accounting exercise, not a migration. The
+post-migration names any company still standing so the work is visible.
+
+### Do it early
+
+The cost of consolidating scales with posted entries. Moving a few dozen
+is an afternoon; moving tens of thousands means re-posting balances by
+hand and reconciling the result. Check the scope before deciding when:
+
+```sql
+SELECT c.name,
+       (SELECT count(*) FROM account_move   m WHERE m.company_id = c.id) AS journal_entries,
+       (SELECT count(*) FROM account_move_line l WHERE l.company_id = c.id) AS journal_items,
+       (SELECT count(*) FROM sale_order     s WHERE s.company_id = c.id) AS orders,
+       (SELECT count(*) FROM account_journal j WHERE j.company_id = c.id) AS journals
+  FROM res_company c
+ ORDER BY c.id;
+```
+
+### The procedure
+
+Run by whoever owns the books, not by a migration:
+
+1. **Stop posting** to the emirate companies — everything new goes to the
+   surviving L.L.C.
+2. **Close their periods** so nothing can be back-dated into them.
+3. **Carry the balances across** with journal entries booked in the
+   surviving company, one per emirate, referencing the source company in
+   the narrative so the trail is auditable.
+4. **Reconcile** — the surviving company's trial balance should absorb the
+   others' closing balances exactly.
+5. **Archive** the emptied companies. Never delete: the history has to
+   stay readable.
+
+Tag each carried-across entry with its Emirate analytic account on the way
+in, and the branch P&L keeps its history rather than starting from the
+consolidation date.
+
+### Reporting after consolidation
+
+Branch-wise P&L comes from the Emirate analytic dimension, which
+`aabaan_finance_core` autofills from the contract and enforces on every
+posting — so no untagged entry can leak out of a branch total. Use Odoo's
+Profit & Loss report with an analytic filter.
+
+Two limits worth knowing:
+
+- Analytic splits the **P&L**, not the balance sheet. Receivables, payables
+  and cash stay at company level.
+- A *complete* branch P&L needs a rule for **shared overheads** (head
+  office, group insurance, management salaries): either allocate them
+  across branches or leave them at group level and accept that the branch
+  P&Ls sum to less than the company. Either is defensible; it needs
+  deciding rather than defaulting.

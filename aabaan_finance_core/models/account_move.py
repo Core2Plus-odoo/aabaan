@@ -108,9 +108,20 @@ class AccountMove(models.Model):
                 plans = self._aabaan_line_plans(dist)
                 add = self.env['account.analytic.account']
                 if emirate_plan and emirate_plan.id not in plans:
-                    label = order._aabaan_selection_display('x_emirate_regime') \
-                        if hasattr(order, '_aabaan_selection_display') else order._xval('x_emirate_regime')
-                    add |= self._aabaan_find_analytic_account(emirate_plan, label)
+                    # An explicit branch on the contract beats matching the
+                    # x_emirate_regime label against account names: the
+                    # fuzzy step is what leaves a posting blocked when no
+                    # name matches. Guarded because aabaan_finance_core does
+                    # not depend on aabaan_branches.
+                    branch = order.aabaan_branch_id \
+                        if 'aabaan_branch_id' in order._fields \
+                        else self.env['account.analytic.account']
+                    if branch and branch.root_plan_id == emirate_plan:
+                        add |= branch
+                    else:
+                        label = order._aabaan_selection_display('x_emirate_regime') \
+                            if hasattr(order, '_aabaan_selection_display') else order._xval('x_emirate_regime')
+                        add |= self._aabaan_find_analytic_account(emirate_plan, label)
                 if service_plan and service_plan.id not in plans:
                     label = order._aabaan_selection_display('x_service_line') \
                         if hasattr(order, '_aabaan_selection_display') else order._xval('x_service_line')
