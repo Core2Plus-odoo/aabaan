@@ -59,25 +59,70 @@ Versions 19.0.2.x split Dubai and Sharjah into **standalone companies**.
 Version 19.0.3.0.0 reverses that direction: the emirates are branches
 again.
 
+**Why.** The separate emirate licences exist because the UAE requires a
+local licence to trade in each emirate — not because the business is three
+businesses. Commercially and for tax it is one company: one taxable
+person, one TRN, one set of statutory books. The Sharjah licence is
+registered as *SHJ BR 2* — a branch registration — which is the same story
+in the paperwork.
+
 The upgrade **stops maintaining the split** and carries each company's
 licence number and expiry onto the matching branch, so nothing is lost.
-It does **not** archive or merge those companies, because:
+It does **not** merge the books, because:
 
 > Odoo cannot move journal entries between companies.
 
-Consolidating the books is an accounting exercise, not a migration. The
-post-migration logs a warning naming any company still standing. Deciding
-what to do with them is a finance decision, and it has real consequences:
+Consolidating is an accounting exercise, not a migration. The
+post-migration names any company still standing so the work is visible.
 
-- **If each emirate files its own VAT return** under its own TRN, they must
-  stay separate legal entities for accounting, whatever the operational
-  reporting looks like. In that case keep the companies and use the branch
-  dimension only for operational grouping.
-- **If the group files once** under the head-office TRN, the emirate
-  companies can be wound down: stop posting to them, close their periods,
-  and carry balances across with journal entries booked in the surviving
-  company. Then archive them — never delete, so the history stays
-  auditable.
+### Do it early
 
-Whichever applies, the branch dimension in this module is unaffected: it
-groups contracts, invoices and reporting by emirate either way.
+The cost of consolidating scales with posted entries. Moving a few dozen
+is an afternoon; moving tens of thousands means re-posting balances by
+hand and reconciling the result. Check the scope before deciding when:
+
+```sql
+SELECT c.name,
+       (SELECT count(*) FROM account_move   m WHERE m.company_id = c.id) AS journal_entries,
+       (SELECT count(*) FROM account_move_line l WHERE l.company_id = c.id) AS journal_items,
+       (SELECT count(*) FROM sale_order     s WHERE s.company_id = c.id) AS orders,
+       (SELECT count(*) FROM account_journal j WHERE j.company_id = c.id) AS journals
+  FROM res_company c
+ ORDER BY c.id;
+```
+
+### The procedure
+
+Run by whoever owns the books, not by a migration:
+
+1. **Stop posting** to the emirate companies — everything new goes to the
+   surviving L.L.C.
+2. **Close their periods** so nothing can be back-dated into them.
+3. **Carry the balances across** with journal entries booked in the
+   surviving company, one per emirate, referencing the source company in
+   the narrative so the trail is auditable.
+4. **Reconcile** — the surviving company's trial balance should absorb the
+   others' closing balances exactly.
+5. **Archive** the emptied companies. Never delete: the history has to
+   stay readable.
+
+Tag each carried-across entry with its Emirate analytic account on the way
+in, and the branch P&L keeps its history rather than starting from the
+consolidation date.
+
+### Reporting after consolidation
+
+Branch-wise P&L comes from the Emirate analytic dimension, which
+`aabaan_finance_core` autofills from the contract and enforces on every
+posting — so no untagged entry can leak out of a branch total. Use Odoo's
+Profit & Loss report with an analytic filter.
+
+Two limits worth knowing:
+
+- Analytic splits the **P&L**, not the balance sheet. Receivables, payables
+  and cash stay at company level.
+- A *complete* branch P&L needs a rule for **shared overheads** (head
+  office, group insurance, management salaries): either allocate them
+  across branches or leave them at group level and accept that the branch
+  P&Ls sum to less than the company. Either is defensible; it needs
+  deciding rather than defaulting.

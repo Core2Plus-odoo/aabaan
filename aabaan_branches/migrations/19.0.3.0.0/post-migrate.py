@@ -65,10 +65,14 @@ def migrate(cr, version):
                 "branch %s", company.name, branch.name)
 
     if leftover:
+        moves = env['account.move'].sudo().search_count(
+            [('company_id', 'in', leftover.ids)])
         _logger.warning(
-            "Aabaan branches: %s still exist as separate companies with "
-            "their own books. The emirates are now branches on the Emirate "
-            "analytic dimension; consolidating those companies is a manual "
-            "accounting decision (Odoo cannot move journal entries between "
-            "companies). See aabaan_branches/README.md.",
-            ", ".join(leftover.mapped('name')))
+            "Aabaan branches: %s still exist as separate companies, holding "
+            "%s journal entr%s between them. The emirates are now branches on "
+            "the Emirate analytic dimension, so those books need carrying "
+            "into the surviving company by hand -- Odoo cannot move journal "
+            "entries between companies, and the effort grows with every "
+            "entry posted. Procedure in aabaan_branches/README.md.",
+            ", ".join(leftover.mapped('name')),
+            moves, "y" if moves == 1 else "ies")
