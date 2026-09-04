@@ -440,6 +440,113 @@
                     </div>
                 </t>
 
+                <!-- ══ Expenses &amp; Margin ══ -->
+                <t t-if="state.tab === 'expenses'">
+                    <div class="o_aabaan_dash_tiles">
+                        <t t-foreach="state.data.kpis" t-as="item" t-key="item.label">
+                            <t t-call="aabaan_ceo_dashboard.Kpi"/>
+                        </t>
+                    </div>
+                    <div class="o_aabaan_dash_grid">
+                        <div class="card wide">
+                            <h2>Invoiced against spent — last 12 months</h2>
+                            <div class="dual">
+                                <div class="dcol">
+                                    <div class="dh">Invoiced, net of VAT</div>
+                                    <t t-set="items" t-value="state.data.revenue_months"/>
+                                    <t t-call="aabaan_ceo_dashboard.MonthCols"/>
+                                </div>
+                                <div class="dcol">
+                                    <div class="dh">Expenses booked</div>
+                                    <t t-set="items" t-value="state.data.expense_months"/>
+                                    <t t-call="aabaan_ceo_dashboard.MonthCols"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h2>Where the money went</h2>
+                            <div t-if="!hasAny(state.data.by_account)" class="empty">
+                                No expense posted in this window.
+                            </div>
+                            <t t-else="">
+                                <t t-set="items" t-value="state.data.by_account"/>
+                                <t t-call="aabaan_ceo_dashboard.BarsMoney"/>
+                            </t>
+                        </div>
+
+                        <div class="card">
+                            <h2>Cost by emirate</h2>
+                            <div t-if="!hasAny(state.data.by_emirate)" class="empty">
+                                No cost carries an Emirate analytic tag in this window.
+                                Spend with no tag is not spread across branches on an
+                                assumption — tag it, or agree an allocation rule for
+                                shared overheads.
+                            </div>
+                            <t t-else="">
+                                <t t-set="items" t-value="state.data.by_emirate"/>
+                                <t t-call="aabaan_ceo_dashboard.BarsMoney"/>
+                            </t>
+                        </div>
+                    </div>
+                </t>
+
+                <!-- ══ Cash &amp; Bank ══ -->
+                <t t-if="state.tab === 'cash'">
+                    <div class="o_aabaan_dash_tiles">
+                        <t t-foreach="state.data.kpis" t-as="item" t-key="item.label">
+                            <t t-call="aabaan_ceo_dashboard.Kpi"/>
+                        </t>
+                    </div>
+                    <div class="o_aabaan_dash_grid">
+                        <div class="card wide">
+                            <h2>Money in against money out — last 12 months</h2>
+                            <div class="dual">
+                                <div class="dcol">
+                                    <div class="dh">Money in</div>
+                                    <t t-set="items" t-value="state.data.flow_months"/>
+                                    <t t-call="aabaan_ceo_dashboard.MonthCols"/>
+                                </div>
+                                <div class="dcol">
+                                    <div class="dh">Money out</div>
+                                    <t t-set="items" t-value="state.data.out_months"/>
+                                    <t t-call="aabaan_ceo_dashboard.MonthCols"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <h2>Balance by account</h2>
+                            <div t-if="!hasAny(state.data.accounts)" class="empty">
+                                No bank or cash journal has a default account set.
+                            </div>
+                            <t t-else="">
+                                <t t-set="items" t-value="state.data.accounts"/>
+                                <t t-call="aabaan_ceo_dashboard.BarsMoney"/>
+                            </t>
+                        </div>
+
+                        <div class="card">
+                            <h2>Recent movements</h2>
+                            <div t-if="!state.data.transactions.length" class="empty">
+                                Nothing moved through the bank in this window.
+                            </div>
+                            <div class="bars" t-else="">
+                                <button class="bar txn" t-foreach="state.data.transactions"
+                                        t-as="item" t-key="item.key"
+                                        t-on-click="() => this.open(item)">
+                                    <span class="lbl">
+                                        <t t-out="item.label"/>
+                                        <small><t t-out="item.date"/> · <t t-out="item.account"/></small>
+                                    </span>
+                                    <span t-attf-class="num {{ item.gross &lt; 0 ? 'crit' : '' }}"
+                                          t-out="money(item.gross)"/>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+
                 <!-- ══ AMC &amp; Renewals ══ -->
                 <t t-if="state.tab === 'amc'">
                     <div class="o_aabaan_dash_tiles">

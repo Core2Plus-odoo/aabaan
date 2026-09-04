@@ -256,6 +256,27 @@
                 font-variant-numeric: tabular-nums; white-space: nowrap;
                 .crit { color: var(--ab-crit); }
             }
+
+            // A transaction row has no bar to draw — it is a ledger line,
+            // not a share of a total — so it drops the middle track column
+            // and gives the label two lines instead.
+            &.txn {
+                grid-template-columns: 1fr auto;
+                align-items: start;
+                padding: 6px 0;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                .lbl {
+                    white-space: normal;
+                    line-height: 1.35;
+                    small {
+                        display: block;
+                        font-size: 11px;
+                        color: #8a877f;
+                        font-variant-numeric: tabular-nums;
+                    }
+                }
+                .num.crit { color: var(--ab-crit); }
+            }
         }
 
         .renew {

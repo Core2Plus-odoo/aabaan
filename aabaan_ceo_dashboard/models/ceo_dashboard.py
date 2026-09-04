@@ -11,6 +11,8 @@ TABS = [
     ('field', 'Field Operations'),
     ('sales', 'Sales & CRM'),
     ('finance', 'Finance'),
+    ('expenses', 'Expenses & Margin'),
+    ('cash', 'Cash & Bank'),
     ('amc', 'AMC & Renewals'),
 ]
 
@@ -195,6 +197,51 @@ class AabaanCeoDashboard(models.AbstractModel):
     def _ar_domain(self):
         return [('move_type', '=', 'out_invoice'), ('state', '=', 'posted'),
                 ('payment_state', 'in', ('not_paid', 'partial'))]
+
+    @api.model
+    def _expense_line_domain(self, start=None, end=None):
+        """Posted lines on an expense account.
+
+        Account type, not move type: a payroll journal entry is a cost even
+        though it is not a vendor bill. In Odoo 19 the ``expense`` prefix
+        covers expense, expense_depreciation and expense_direct_cost.
+        """
+        domain = [('parent_state', '=', 'posted'),
+                  ('account_id.account_type', 'like', 'expense')]
+        if start is not None:
+            domain.append(('date', '>=', fields.Date.to_string(start)))
+        if end is not None:
+            domain.append(('date', '<', fields.Date.to_string(end)))
+        return domain
+
+    @api.model
+    def _cash_journals(self):
+        return self.env['account.journal'].search(
+            [('type', 'in', ('bank', 'cash'))])
+
+    @api.model
+    def _cash_line_domain(self, start=None, end=None):
+        """Posted lines sitting on a bank or cash journal's own account —
+        the movements that actually change the balance."""
+        accounts = self._cash_journals().mapped('default_account_id')
+        if not accounts:
+            return None
+        domain = [('account_id', 'in', accounts.ids),
+                  ('parent_state', '=', 'posted')]
+        if start is not None:
+            domain.append(('date', '>=', fields.Date.to_string(start)))
+        if end is not None:
+            domain.append(('date', '<', fields.Date.to_string(end)))
+        return domain
+
+    @api.model
+    def _emirate_plan(self):
+        """The Emirate analytic plan, resolved by name (Rule 2 — it is
+        defined in the database, not in the source). Returns an empty
+        recordset when the plan does not exist, so the branch split
+        collapses into an honest empty state rather than raising."""
+        Plan = self.env['account.analytic.plan']
+        return Plan.search([('name', 'ilike', 'emirate')], limit=1)
 
     @api.model
     def _payment_domain(self, start, end):
@@ -942,7 +989,247 @@ class AabaanCeoDashboard(models.AbstractModel):
         }
 
     # ------------------------------------------------------------------
-    # tab 5 — AMC & Renewals
+    # tab 5 — Expenses & Margin
+    # ------------------------------------------------------------------
+
+    def _tab_expenses(self, start, end, prev_start, prev_end):
+        """Cost structure and what is left after it.
+
+        Where the Finance tab asks whether customers have paid, this one
+        asks what the money went on. Expenses are read from the accounts
+        they were booked to rather than from vendor bills, so payroll
+        journals and depreciation count alongside purchases.
+        """
+        Line = self.env['account.move.line']
+        this_dom = self._expense_line_domain(start, end)
+        prev_dom = self._expense_line_domain(prev_start, prev_end)
+
+        spend, spend_count = self._sums(
+            'account.move.line', this_dom, ['balance:sum', '__count'])
+        prev_spend, _prev_count = self._sums(
+            'account.move.line', prev_dom, ['balance:sum', '__count'])
+
+        revenue_domain = self._invoice_domain() + [
+            ('invoice_date', '>=', fields.Date.to_string(start)),
+            ('invoice_date', '<', fields.Date.to_string(end))]
+        revenue, revenue_count = self._sums(
+            'account.move', revenue_domain,
+            ['amount_untaxed_signed:sum', '__count'])
+        profit = revenue - spend
+
+        # Spend by expense account. The chart of accounts is the expense
+        # category — §7 of the finance requirements asks for Branch →
+        # Department → Category, and the category already lives there. No
+        # parallel taxonomy to keep in step.
+        by_account = []
+        for account, balance, count in Line._read_group(
+                this_dom, ['account_id'], ['balance:sum', '__count']):
+            if not balance:
+                continue
+            by_account.append({
+                'key': str(account.id),
+                'label': account.name or account.code or 'Unnamed account',
+                'gross': balance,
+                'count': count,
+                'model': 'account.move.line',
+                'domain': this_dom + [('account_id', '=', account.id)],
+            })
+        by_account.sort(key=lambda item: -item['gross'])
+
+        # Payroll share is read off the accounts rather than assumed: any
+        # account whose name says payroll, wages or salaries.
+        payroll = sum(
+            row['gross'] for row in by_account
+            if any(word in row['label'].casefold()
+                   for word in ('payroll', 'wage', 'salar', 'staff cost')))
+
+        kpis = [
+            {'label': 'Total expenses', 'gross': spend, 'count': spend_count,
+             'model': 'account.move.line', 'domain': this_dom, 'hero': True,
+             'delta': self._delta(spend, prev_spend), 'invert': True},
+            {'label': 'Invoiced, net of VAT', 'gross': revenue,
+             'count': revenue_count, 'model': 'account.move',
+             'domain': revenue_domain},
+            {'label': 'Net of expenses', 'gross': profit,
+             'note': 'invoiced less expenses booked in the same window; '
+                     'not a statutory result'},
+            {'label': 'Margin', 'pct': self._pct(profit, revenue),
+             'note': 'net of expenses against invoiced'},
+            {'label': 'Payroll share', 'pct': self._pct(payroll, spend),
+             'note': 'accounts named payroll, wages or salaries, '
+                     'against total spend'},
+        ]
+
+        return {
+            'kpis': kpis,
+            'by_account': by_account[:12],
+            'by_emirate': self._expenses_by_emirate(start, end),
+            'expense_months': self._months(
+                'account.move.line',
+                lambda s, e: self._expense_line_domain(s, e),
+                ['balance:sum', '__count']),
+            'revenue_months': self._months(
+                'account.move',
+                lambda s, e: self._invoice_domain() + [
+                    ('invoice_date', '>=', fields.Date.to_string(s)),
+                    ('invoice_date', '<', fields.Date.to_string(e))],
+                ['amount_untaxed_signed:sum', '__count']),
+            'notes': [],
+        }
+
+    @api.model
+    def _expenses_by_emirate(self, start, end):
+        """Cost per branch, off the Emirate analytic dimension.
+
+        That dimension is the branch: aabaan_finance_core autofills it on
+        every invoice line and enforces it on posting, so the analytic
+        items are where a per-emirate cost actually lives. Costs arrive
+        there as negative amounts, so they are flipped for display.
+
+        Spend carrying no Emirate tag is not spread across branches on an
+        assumption — an allocation rule for shared overheads is a
+        management decision, not something a dashboard should invent.
+        """
+        plan = self._emirate_plan()
+        if not plan:
+            return []
+        domain = [
+            ('account_id.root_plan_id', '=', plan.id),
+            ('amount', '<', 0),
+            ('date', '>=', fields.Date.to_string(start)),
+            ('date', '<', fields.Date.to_string(end)),
+        ]
+        rows = []
+        for account, amount, count in self.env['account.analytic.line']._read_group(
+                domain, ['account_id'], ['amount:sum', '__count']):
+            rows.append({
+                'key': str(account.id),
+                'label': account.name or 'Unnamed',
+                'gross': -(amount or 0.0),
+                'count': count,
+                'model': 'account.analytic.line',
+                'domain': domain + [('account_id', '=', account.id)],
+            })
+        rows.sort(key=lambda item: -item['gross'])
+        return rows
+
+    # ------------------------------------------------------------------
+    # tab 6 — Cash & Bank
+    # ------------------------------------------------------------------
+
+    def _tab_cash(self, start, end, prev_start, prev_end):
+        """Liquidity: what is in the accounts, and what moved through them.
+
+        Deliberately not split by emirate. A bank account belongs to the
+        company, not to a branch, and dividing a shared balance between
+        branches would be a made-up number.
+        """
+        Line = self.env['account.move.line']
+        journals = self._cash_journals()
+        window = self._cash_line_domain(start, end)
+        if window is None:
+            return {
+                'kpis': [], 'accounts': [], 'flow_months': [],
+                'transactions': [],
+                'notes': ['No bank or cash journal has a default account set, '
+                          'so there is no balance to read. Set one under '
+                          'Accounting → Configuration → Journals.'],
+            }
+
+        inflow, _in_count = self._sums(
+            'account.move.line', window + [('debit', '>', 0)],
+            ['debit:sum', '__count'])
+        outflow, _out_count = self._sums(
+            'account.move.line', window + [('credit', '>', 0)],
+            ['credit:sum', '__count'])
+
+        # Balance is every posted movement up to the end of the window,
+        # not just the window itself — a period's opening balance is part
+        # of what is in the bank today.
+        to_date = self._cash_line_domain(None, end)
+        balance, _bal_count = self._sums(
+            'account.move.line', to_date, ['balance:sum', '__count'])
+
+        accounts = []
+        for journal in journals:
+            account = journal.default_account_id
+            if not account:
+                continue
+            domain = [('account_id', '=', account.id),
+                      ('parent_state', '=', 'posted'),
+                      ('date', '<', fields.Date.to_string(end))]
+            jbal, jcount = self._sums(
+                'account.move.line', domain, ['balance:sum', '__count'])
+            accounts.append({
+                'key': str(journal.id),
+                'label': journal.name,
+                'gross': jbal,
+                'count': jcount,
+                'model': 'account.move.line',
+                'domain': domain,
+            })
+        accounts.sort(key=lambda item: -item['gross'])
+
+        kpis = [
+            {'label': 'Cash and bank', 'gross': balance,
+             'count': len(accounts), 'model': 'account.move.line',
+             'domain': to_date, 'hero': True,
+             'note': 'balance across %s account%s at the end of the window'
+                     % (len(accounts), '' if len(accounts) == 1 else 's')},
+            {'label': 'Money in', 'gross': inflow,
+             'model': 'account.move.line',
+             'domain': window + [('debit', '>', 0)]},
+            {'label': 'Money out', 'gross': outflow,
+             'model': 'account.move.line',
+             'domain': window + [('credit', '>', 0)]},
+            {'label': 'Net movement', 'gross': inflow - outflow,
+             'note': 'money in less money out over this window'},
+        ]
+
+        transactions = []
+        for line in Line.search(window, order='date desc, id desc', limit=12):
+            transactions.append({
+                'key': str(line.id),
+                'label': (line.move_id.ref or line.name
+                          or line.move_id.name or 'Movement'),
+                'account': line.account_id.name,
+                'partner': line.partner_id.display_name or '—',
+                'date': fields.Date.to_string(line.date),
+                'gross': line.debit - line.credit,
+                'model': 'account.move',
+                'domain': [('id', '=', line.move_id.id)],
+            })
+
+        # Built from the account ids directly rather than by calling
+        # _cash_line_domain again: that helper returns None when no cash
+        # account exists, and `or []` would quietly widen the month series
+        # to every line in the ledger. The ids are already known here.
+        account_ids = journals.mapped('default_account_id').ids
+
+        def month_domain(m_from, m_to, side):
+            return [('account_id', 'in', account_ids),
+                    ('parent_state', '=', 'posted'),
+                    ('date', '>=', fields.Date.to_string(m_from)),
+                    ('date', '<', fields.Date.to_string(m_to)),
+                    (side, '>', 0)]
+
+        return {
+            'kpis': kpis,
+            'accounts': accounts,
+            'flow_months': self._months(
+                'account.move.line',
+                lambda s, e: month_domain(s, e, 'debit'),
+                ['debit:sum', '__count']),
+            'out_months': self._months(
+                'account.move.line',
+                lambda s, e: month_domain(s, e, 'credit'),
+                ['credit:sum', '__count']),
+            'transactions': transactions,
+            'notes': [],
+        }
+
+    # ------------------------------------------------------------------
+    # tab 7 — AMC & Renewals
     # ------------------------------------------------------------------
 
     def _tab_amc(self, start, end, prev_start, prev_end):
