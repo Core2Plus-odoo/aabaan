@@ -1,7 +1,7 @@
 # Part of the Aabaan Odoo build by C2P Consultants FZC LLC.
 {
     'name': 'Aabaan Finance Core',
-    'version': '19.0.1.2.0',
+    'version': '19.0.1.3.0',
     'category': 'Accounting',
     'summary': 'Finance dept P1+P2: enforced branch/service analytic segregation and recovery classification',
     'description': """
@@ -12,7 +12,12 @@ Priority 1 — Branch + Service segregation, enforced
 - Every posted customer invoice / vendor bill income or expense line must
   carry an analytic distribution touching both the Emirate (branch) plan and
   the Service Line plan. Posting is blocked with a clear message otherwise
-  (fool-proof: no untagged financial transaction can exist).
+  (fool-proof: no untagged financial transaction can exist). The block covers
+  invoices and bills only -- the same business domains native Odoo offers a
+  mandatory analytic applicability for. Machine-written journal entries
+  (payroll, depreciation, COGS, reconciliation) post and are flagged
+  "Untagged for Branch" instead, because blocking them stops a payroll run
+  without getting anything tagged.
 - Invoices created from contracts inherit the tags automatically where the
   order carries x_emirate_regime / x_service_line.
 

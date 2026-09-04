@@ -36,4 +36,8 @@
     <menuitem id="menu_recovery_link" name="Recovery"
               parent="menu_management_reports"
               action="aabaan_finance_core.action_recovery_report" sequence="3"/>
+    <menuitem id="menu_untagged_for_branch" name="Untagged for Branch"
+              parent="menu_management_reports"
+              action="aabaan_finance_core.action_untagged_for_branch"
+              sequence="4"/>
 </odoo>

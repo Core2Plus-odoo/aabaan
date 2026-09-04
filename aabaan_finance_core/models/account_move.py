@@ -33,6 +33,13 @@ class AccountMove(models.Model):
         string="Services", store=True, compute='_compute_aabaan_services',
         help="All services on the contracts behind this invoice — the "
              "service dimension of the recovery grid (§5).")
+    aabaan_analytic_incomplete = fields.Boolean(
+        string="Untagged for Branch", store=True, readonly=True,
+        compute='_compute_aabaan_analytic_incomplete',
+        help="This posted entry has a line that should carry a branch (and "
+             "for customer invoices a service) analytic tag and does not, so "
+             "its amount is missing from the branch P&L. Set the analytic "
+             "distribution on the line and the flag clears itself.")
 
     @api.depends('invoice_line_ids.sale_line_ids')
     def _compute_aabaan_services(self):
@@ -140,7 +147,79 @@ class AccountMove(models.Model):
         accounts = self.env['account.analytic.account'].browse(list(ids)).exists()
         return set(accounts.mapped('root_plan_id').ids)
 
+    def _aabaan_analytic_gaps(self, emirate_plan, service_plan):
+        """Lines that should carry a branch/service tag and don't.
+
+        One matrix, read by both the posting guard and the "untagged" flag,
+        so what blocks a document and what shows up in the exception queue
+        can never drift apart.
+
+        Customer invoices need branch AND service. Vendor bills need the
+        branch only — overheads like utilities have no service line (§7 asks
+        for Branch → Department → Expense Category, not a service). Journal
+        entries need the branch on their expense lines.
+        """
+        self.ensure_one()
+        if self.move_type in ('out_invoice', 'out_refund'):
+            required = [emirate_plan, service_plan]
+            lines = self.invoice_line_ids.filtered(
+                lambda l: l.display_type == 'product')
+        elif self.move_type in ('in_invoice', 'in_refund'):
+            required = [emirate_plan]
+            lines = self.invoice_line_ids.filtered(
+                lambda l: l.display_type == 'product')
+        elif self.move_type == 'entry':
+            required = [emirate_plan]
+            lines = self.line_ids.filtered(
+                lambda l: (l.account_id.account_type or '').startswith(
+                    'expense'))
+        else:
+            return []
+
+        gaps = []
+        for line in lines:
+            plans = self._aabaan_line_plans(line.analytic_distribution)
+            missing = [plan for plan in required
+                       if plan and plan.id not in plans]
+            if missing:
+                gaps.append((line, missing))
+        return gaps
+
+    @api.depends('state', 'move_type', 'line_ids.analytic_distribution',
+                 'line_ids.account_id', 'line_ids.display_type')
+    def _compute_aabaan_analytic_incomplete(self):
+        """Flag a posted move whose amounts cannot reach a branch total.
+
+        This is the counterweight to not blocking journal entries: an
+        untagged entry still posts, but it is never silent — it lands in
+        Management Reports → Untagged for Branch until someone tags it.
+        Re-tagging a posted line recomputes this, so the queue empties as
+        the work is done.
+        """
+        emirate_plan, service_plan = self._aabaan_analytic_plans()
+        for move in self:
+            move.aabaan_analytic_incomplete = bool(
+                move.state == 'posted'
+                and (emirate_plan or service_plan)
+                and move._aabaan_analytic_gaps(emirate_plan, service_plan))
+
     def _aabaan_check_analytic_segregation(self):
+        """Block a document a person can still fix; never block the machine.
+
+        The hard stop covers customer invoices and vendor bills only — the
+        same business domains native Odoo offers a mandatory analytic
+        applicability for, which this module already configures in its
+        post-init hook. Native deliberately stops there, and so does this.
+
+        Journal entries are not blocked. Almost every `entry` touching an
+        expense account is machine-written — payroll, asset depreciation,
+        anglo-saxon COGS, reconciliation write-offs and exchange differences
+        — posted from a cron or a batch wizard with no analytic distribution
+        and no screen on which anyone could add one. Raising there does not
+        get the entry tagged; it aborts the payroll run, and takes the rest
+        of the batch down with it in the same transaction. Those entries now
+        post and are flagged instead (see aabaan_analytic_incomplete).
+        """
         if self.env.context.get('aabaan_skip_analytic_check'):
             return
         if self.env['ir.config_parameter'].sudo().get_param(
@@ -153,11 +232,9 @@ class AccountMove(models.Model):
             'out_invoice', 'out_refund', 'in_invoice', 'in_refund'))
         invoices._aabaan_autofill_analytic(emirate_plan, service_plan)
 
-        def check(move, line, required_plans):
-            plans = self._aabaan_line_plans(line.analytic_distribution)
-            missing = [plan.name for plan in required_plans
-                       if plan and plan.id not in plans]
-            if missing:
+        for move in invoices:
+            for line, missing in move._aabaan_analytic_gaps(
+                    emirate_plan, service_plan):
                 raise UserError(_(
                     "%(move)s cannot be posted: line \"%(line)s\" has no "
                     "%(missing)s analytic tag.\n\nEvery financial transaction "
@@ -166,25 +243,7 @@ class AccountMove(models.Model):
                     "then post.",
                     move=move.display_name,
                     line=(line.name or line.product_id.display_name or '?'),
-                    missing=" and ".join(missing)))
-
-        for move in invoices:
-            # Customer invoices: branch AND service. Vendor bills: branch only
-            # (overheads like utilities have no service line — §7 requires
-            # Branch → Department → Expense Category, not a service).
-            required = [emirate_plan, service_plan] \
-                if move.move_type in ('out_invoice', 'out_refund') \
-                else [emirate_plan]
-            for line in move.invoice_line_ids.filtered(
-                    lambda l: l.display_type == 'product'):
-                check(move, line, required)
-
-        # Manual journal entries hitting expense accounts need the branch too.
-        for move in self.filtered(lambda m: m.move_type == 'entry'):
-            for line in move.line_ids.filtered(
-                    lambda l: l.account_id.account_type
-                    and l.account_id.account_type.startswith('expense')):
-                check(move, line, [emirate_plan])
+                    missing=" and ".join(plan.name for plan in missing)))
 
     def _post(self, soft=True):
         self._aabaan_check_analytic_segregation()
