@@ -1,3 +1,7 @@
+import logging
+
+_logger = logging.getLogger(__name__)
+
 # Site structure: top menu entries (name, url, sequence, children).
 SITE_MENUS = [
     ('Home', '/', 10, []),
@@ -167,8 +171,18 @@ def _retire_legacy_pages(env):
     """Unpublish every website page this module does not own (except the
     keep-list above). Nothing is deleted — the old pages stay in the page
     manager and can be republished with one click."""
+    ours = _module_pages(env)
+    if not ours:
+        # Every page on the site is "not ours" when we own nothing, and the
+        # search below would then unpublish the entire website. That state
+        # means our own data failed to load, so the safe move is to change
+        # nothing and say so.
+        _logger.warning(
+            "aabaan_website_theme: no module-owned pages found; skipping "
+            "legacy retirement rather than unpublishing the whole site.")
+        return
     legacy = env['website.page'].search([
-        ('id', 'not in', _module_pages(env).ids),
+        ('id', 'not in', ours.ids),
         ('url', 'not in', KEEP_PUBLISHED_URLS),
         ('is_published', '=', True),
     ])
@@ -213,3 +227,35 @@ def _apply_site_structure(env):
 
 def _post_init_hook(env):
     _apply_site_structure(env)
+
+
+def _owned_menu_urls():
+    """The menu URLs this module owns — every entry it builds except
+    /contactus, whose page is native and outlives this module."""
+    urls = set()
+    for _name, url, _sequence, children in SITE_MENUS:
+        urls.add(url)
+        for _c_name, c_url, _c_seq in children:
+            urls.add(c_url)
+    return urls - set(KEEP_PUBLISHED_URLS)
+
+
+def _uninstall_hook(env):
+    """Take the menu bar down with the module.
+
+    The pages are XML records, so uninstalling drops them along with their
+    ir.model.data anchors. The menus are not: _rebuild_menu creates them
+    directly with Menu.create() and no xmlid, so without this hook they
+    survive uninstall and the site is left advertising a full navigation
+    bar in which every link 404s — nav intact, every page gone.
+
+    Only menus pointing at pages this module owns are removed; genuinely
+    external links and /contactus are left alone.
+    """
+    Menu = env['website.menu']
+    orphans = Menu.search([('url', 'in', list(_owned_menu_urls()))]).filtered(
+        lambda m: not _is_external(m))
+    if orphans:
+        _logger.info("aabaan_website_theme: removing %s menu entries whose "
+                     "pages go with the module.", len(orphans))
+        orphans.unlink()

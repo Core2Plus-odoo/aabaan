@@ -30,6 +30,20 @@ kept), and every legacy page is unpublished —
 except the keep-list (`/booking`, `/contactus`, legal pages). Old pages
 stay in the website page manager and can be republished with one click.
 
+## Uninstalling
+
+The pages are XML records and go with the module. The menus are **not** —
+`_rebuild_menu` creates them directly, with no `ir.model.data` anchor — so
+the `uninstall_hook` removes them explicitly. Without it, uninstalling left
+the site showing the full navigation bar (Home, Services, About us, FAQ,
+Book a visit) with every link 404ing, which is exactly how the live site
+was found. `/contactus` and genuinely external links (`http`, `mailto`,
+`tel`) are left alone.
+
+If you ever see that nav-intact / pages-gone state again, the fix is to
+install or upgrade this module: the page records are not `noupdate`, so an
+upgrade recreates all ten of them, published, and rebuilds the menu.
+
 ## What is configuration (native Odoo, not this module)
 
 - The contact page is the native `/contactus` form (`website_crm`) — leads

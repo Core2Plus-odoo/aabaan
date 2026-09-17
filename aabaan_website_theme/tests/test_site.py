@@ -4,6 +4,7 @@ from odoo.addons.aabaan_website_theme import (
     KEEP_PUBLISHED_URLS,
     SITE_MENUS,
     _apply_site_structure,
+    _owned_menu_urls,
 )
 
 PAGES = [
@@ -124,3 +125,42 @@ class TestWebsiteOverhaul(TransactionCase):
                 Menu.search_count(
                     [('url', '=', url), ('website_id', '=', website_id)]),
                 count, f"menu for {url} duplicated on re-run")
+
+    def test_every_menu_entry_points_at_a_page_that_exists(self):
+        """A menu entry whose page is missing is a 404 the visitor finds.
+
+        This is the shape the live site was found in: the nav bar rendered
+        Home / Services / About us / FAQ / Book a visit and every one of
+        them 404'd, because the menus are created in Python while the pages
+        are XML records that went away with the module.
+        """
+        shipped = {url for _xmlid, url in PAGES}
+        for name, url, _sequence, children in SITE_MENUS:
+            for entry_name, entry_url in [(name, url)] + [
+                    (c_name, c_url) for c_name, c_url, _c_seq in children]:
+                if entry_url in KEEP_PUBLISHED_URLS:
+                    continue  # native page, not ours to ship
+                self.assertIn(
+                    entry_url, shipped,
+                    "menu %r points at %s, which this module does not ship - "
+                    "visitors would get a 404" % (entry_name, entry_url))
+
+    def test_uninstall_hook_covers_every_menu_it_builds(self):
+        """Whatever the menu builds, the uninstall hook must take away.
+
+        Without this the module leaves a full navigation bar behind on
+        uninstall, every link of it dead.
+        """
+        owned = _owned_menu_urls()
+        for name, url, _sequence, children in SITE_MENUS:
+            for entry_url in [url] + [c_url for _c, c_url, _s in children]:
+                if entry_url in KEEP_PUBLISHED_URLS:
+                    self.assertNotIn(
+                        entry_url, owned,
+                        "%s is a native page and must survive uninstall"
+                        % entry_url)
+                else:
+                    self.assertIn(
+                        entry_url, owned,
+                        "menu %r (%s) would be orphaned on uninstall"
+                        % (name, entry_url))
